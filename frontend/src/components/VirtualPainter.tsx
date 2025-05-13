@@ -9,12 +9,13 @@ const VirtualPainter = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState('#000000');
   const requestRef = useRef<number | null>(null);
-  const [frameRate, setFrameRate] = useState(5); // frames per second
+  const [frameRate, setFrameRate] = useState(15); // frames per second - increased default
   
-  // Session state
-  const [sessionId, setSessionId] = useState<string>('');
+  // Session management states
+  const [sessionId, setSessionId] = useState(''); // Current session ID when connected
+  const [roomId, setRoomId] = useState(''); // Room ID associated with the session
   const [createRoomInput, setCreateRoomInput] = useState<string>('');
-  const [joinRoomInput, setJoinRoomInput] = useState<string>('');
+  const [joinSessionInput, setJoinSessionInput] = useState<string>('');
   const [participants, setParticipants] = useState<number>(0);
   const [inSession, setInSession] = useState<boolean>(false);
   const [cameraReady, setCameraReady] = useState<boolean>(false);
@@ -58,6 +59,31 @@ const VirtualPainter = () => {
     setPrevPoint({ x, y });
   };
   
+  // Throttle function to limit the frequency of function calls
+  const throttle = (callback: Function, delay: number) => {
+    let lastCall = 0;
+    return function(...args: any[]) {
+      const now = Date.now();
+      if (now - lastCall >= delay) {
+        lastCall = now;
+        callback(...args);
+      }
+    };
+  };
+
+  // Throttled function for sending complete canvas updates
+  const sendDrawingUpdate = useRef(
+    throttle((canvas: HTMLCanvasElement) => {
+      if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) return;
+      
+      const drawingDataURL = canvas.toDataURL('image/png');
+      wsConnection.send(JSON.stringify({
+        type: 'drawing_update',
+        drawing: drawingDataURL
+      }));
+    }, 500) // Throttle to one update every 500ms
+  ).current;
+
   const draw = (x: number, y: number) => {
     if (!isDrawing || !prevPoint) return;
     
@@ -72,7 +98,7 @@ const VirtualPainter = () => {
     ctx.lineCap = 'round';
     ctx.stroke();
     
-    // Send drawing data to server
+    // Send only line segment data to server for immediate sync
     if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
       wsConnection.send(JSON.stringify({
         type: 'mouse_draw',
@@ -81,14 +107,9 @@ const VirtualPainter = () => {
         color: selectedColor
       }));
       
-      // Also send the updated canvas state
-      const drawingCanvas = drawingCanvasRef.current;
-      if (drawingCanvas) {
-        const drawingDataURL = drawingCanvas.toDataURL('image/png');
-        wsConnection.send(JSON.stringify({
-          type: 'drawing_update',
-          drawing: drawingDataURL
-        }));
+      // Throttled full canvas update
+      if (drawingCanvasRef.current) {
+        sendDrawingUpdate(drawingCanvasRef.current);
       }
     }
     
@@ -96,6 +117,15 @@ const VirtualPainter = () => {
   };
   
   const stopDrawing = () => {
+    if (isDrawing && drawingCanvasRef.current && wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+      // Force send a final drawing update when stopping
+      const drawingDataURL = drawingCanvasRef.current.toDataURL('image/png');
+      wsConnection.send(JSON.stringify({
+        type: 'drawing_update',
+        drawing: drawingDataURL
+      }));
+    }
+    
     setIsDrawing(false);
     setPrevPoint(null);
   };
@@ -145,7 +175,22 @@ const VirtualPainter = () => {
 
   // Initialize websocket connection
   useEffect(() => {
-    const ws = new WebSocket('ws://192.168.1.3:8765');
+    // Get host from current location or use default
+    const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+    const WS_URL = `ws://${host}:8765`;
+    
+    console.log('Connecting to WebSocket server at:', WS_URL);
+    
+    let ws: WebSocket;
+    
+    try {
+      ws = new WebSocket(WS_URL);
+      setWsConnection(ws);
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+      setError('Failed to connect to drawing server. Please refresh the page.');
+      return () => {}; // Empty cleanup function if connection fails
+    }
     
     ws.onopen = () => {
       console.log('Connected to WebSocket server');
@@ -157,13 +202,12 @@ const VirtualPainter = () => {
       console.log('Disconnected from WebSocket server');
       setConnected(false);
       setError('Connection to server lost. Please refresh the page.');
-      setInSession(false);
-      setSessionId('');
+      setInSession(false); // Discard session state on disconnect
     };
     
     ws.onerror = (event) => {
       console.error('WebSocket error:', event);
-      setError('Failed to connect to the server. Is the Python backend running?');
+      setError('WebSocket connection error. Please refresh the page.');
       setConnected(false);
     };
     
@@ -171,7 +215,6 @@ const VirtualPainter = () => {
       try {
         const data = JSON.parse(event.data);
         let canvasImage: HTMLImageElement;
-        let ctx: CanvasRenderingContext2D | null;
         
         switch (data.type) {
           case 'clear_canvas':
@@ -181,7 +224,7 @@ const VirtualPainter = () => {
           case 'canvas_update':
             canvasImage = new Image();
             canvasImage.onload = () => {
-              ctx = canvasRef.current?.getContext('2d') ?? null;
+              const ctx = canvasRef.current?.getContext('2d') ?? null;
               if (ctx && canvasRef.current) {
                 ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
                 ctx.drawImage(canvasImage, 0, 0);
@@ -192,26 +235,28 @@ const VirtualPainter = () => {
             
           case 'session_created':
             setSessionId(data.session_id);
+            setRoomId(data.room_id); // Store the room ID
             setInSession(true);
             setParticipants(1); // Creator is the first participant
             setError(null);
-            console.log('Room created successfully. Session ID:', data.session_id);
+            console.log('Room created successfully. Session ID:', data.session_id, 'Room ID:', data.room_id);
             // Clear input fields since we're now in a session
             setCreateRoomInput('');
-            setJoinRoomInput('');
+            setJoinSessionInput('');
             break;
             
           case 'session_joined':
             setSessionId(data.session_id);
+            setRoomId(data.room_id); // Store the room ID
             setInSession(true);
             setParticipants(data.participants);
-            console.log('Successfully joined room. Session ID:', data.session_id);
+            console.log('Successfully joined room. Session ID:', data.session_id, 'Room ID:', data.room_id);
             
             // Set initial canvas state if one exists
             if (data.canvas) {
               canvasImage = new Image();
               canvasImage.onload = () => {
-                ctx = canvasRef.current?.getContext('2d') ?? null;
+                const ctx = canvasRef.current?.getContext('2d') ?? null;
                 if (ctx && canvasRef.current) {
                   ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
                   ctx.drawImage(canvasImage, 0, 0);
@@ -235,7 +280,7 @@ const VirtualPainter = () => {
             
             // Clear input fields since we're now in a session
             setCreateRoomInput('');
-            setJoinRoomInput('');
+            setJoinSessionInput('');
             setError(null);
             break;
             
@@ -298,11 +343,11 @@ const VirtualPainter = () => {
       }
     };
     
-    setWsConnection(ws);
-    
     return () => {
       console.log('Closing WebSocket connection');
-      ws.close();
+      if (ws && ws.readyState !== WebSocket.CLOSED) {
+        ws.close();
+      }
     };
   }, []);
 
@@ -445,27 +490,69 @@ const VirtualPainter = () => {
   }, [wsConnection, connected, frameRate, inSession, isMouseDrawing]);
 
   // Session management functions
-  const handleCreateSession = () => {
-    // Validate that the user has entered a username
-    if (!userName.trim()) {
-      setError('Please enter your name');
+  // Modified handleCreateSession
+const handleCreateSession = async () => {
+  // Validate that the user has entered a username
+  if (!userName.trim()) {
+    setError('Please enter your name');
+    return;
+  }
+  
+  // Validate that a room code has been generated
+  if (!createRoomInput.trim()) {
+    setError('Please generate a room code first');
+    return;
+  }
+  
+  try {
+    // Generate a unique session ID (different from room ID)
+    const generatedSessionId = createRoomInput.trim() + '-' + Math.random().toString(36).substring(2, 7);
+    
+    // Get host from current location or use default for API
+    const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+    const API_URL = `http://${host}:5000/api/sessions/create`;
+    console.log('Creating session with backend at:', API_URL);
+    
+    // Save session to MongoDB with both sessionId and roomId
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sessionId: generatedSessionId,
+        roomId: createRoomInput.trim(),
+        userName: userName.trim()
+      }),
+    });
+    
+    console.log('Session creation response status:', response.status);
+    const data = await response.json();
+    console.log('Session creation response:', data);
+    
+    if (!data.success) {
+      setError(data.message);
       return;
     }
     
-    // Validate that a room code has been generated
-    if (!createRoomInput.trim()) {
-      setError('Please generate a room code first');
-      return;
-    }
-    
+    // If MongoDB save is successful, connect via WebSocket
     if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+      console.log('Sending create session request to WebSocket server');
       wsConnection.send(JSON.stringify({
         type: 'create_session',
-        session_id: createRoomInput.trim(),
+        session_id: generatedSessionId,
+        room_id: createRoomInput.trim(),
         user_name: userName
       }));
+    } else {
+      console.error('WebSocket connection not open');
+      setError('WebSocket connection not available. Please refresh the page.');
     }
-  };
+  } catch (error) {
+    setError('Failed to create session. Please try again.');
+    console.error('Create session error:', error);
+  }
+};
   
   const generateRoomId = () => {
     // Generate a random 6-character alphanumeric room ID
@@ -494,8 +581,8 @@ const VirtualPainter = () => {
     });
   };
   
-  const handleJoinSession = () => {
-    if (!joinRoomInput.trim()) {
+  const handleJoinSession = async () => {
+    if (!joinSessionInput.trim()) {
       setError('Please enter a valid session ID');
       return;
     }
@@ -505,12 +592,48 @@ const VirtualPainter = () => {
       return;
     }
     
-    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-      wsConnection.send(JSON.stringify({
-        type: 'join_session',
-        session_id: joinRoomInput.trim(),
-        user_name: userName
-      }));
+    try {
+      // Get host from current location or use default for API
+      const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+      const API_URL = `http://${host}:5000/api/sessions/validate`;
+      console.log('Validating session with backend at:', API_URL);
+      
+      // Validate session in MongoDB
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: joinSessionInput.trim(),
+          userName: userName.trim()
+        }),
+      });
+      
+      console.log('Session validation response status:', response.status);
+      const data = await response.json();
+      console.log('Session validation response:', data);
+      
+      if (!data.success) {
+        setError(data.message || 'Invalid session ID');
+        return;
+      }
+      
+      // If validation is successful, connect via WebSocket
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        console.log('Sending join request to WebSocket server');
+        wsConnection.send(JSON.stringify({
+          type: 'join_session',
+          session_id: joinSessionInput.trim(),
+          user_name: userName
+        }));
+      } else {
+        console.error('WebSocket connection not open');
+        setError('WebSocket connection not available. Please refresh the page.');
+      }
+    } catch (error) {
+      setError('Failed to join session. Please try again.');
+      console.error('Join session error:', error);
     }
   };
   
@@ -647,21 +770,21 @@ const VirtualPainter = () => {
             
             <input
               type="text"
-              value={joinRoomInput}
-              onChange={(e) => setJoinRoomInput(e.target.value)}
-              placeholder="Enter room code"
+              placeholder="Enter Session ID"
+              value={joinSessionInput}
+              onChange={(e) => setJoinSessionInput(e.target.value)}
               className="w-full mb-4 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-base bg-gray-50"
             />
             
             <button
               onClick={handleJoinSession}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md text-base"
-              disabled={!connected || !userName.trim() || !joinRoomInput.trim()}
+              disabled={!connected || !userName.trim() || !joinSessionInput.trim()}
             >
               Join Room
             </button>
             {!userName.trim() && <p className="text-xs text-gray-500 mt-2 text-center">Please enter your name</p>}
-            {!joinRoomInput.trim() && <p className="text-xs text-gray-500 mt-2 text-center">Please enter a room code</p>}
+            {!joinSessionInput.trim() && <p className="text-xs text-gray-500 mt-2 text-center">Please enter a session ID</p>}
           </div>
         </div>
       </div>
@@ -682,6 +805,34 @@ const VirtualPainter = () => {
       {/* Only show main content when in a session */}
       {inSession && (
         <div>
+          {/* Session Information Panel */}
+          <div className="bg-indigo-50 p-3 sm:p-4 rounded-md mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 max-w-7xl mx-auto">
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex items-center">
+                <span className="font-medium text-black">Session ID:</span>
+                <span className="bg-white px-2 py-1 rounded ml-2 text-black">{sessionId}</span>
+              </div>
+              
+              <div className="flex items-center ml-0 sm:ml-4">
+                <span className="font-medium text-black">Room ID:</span>
+                <span className="bg-white px-2 py-1 rounded ml-2 text-black">{roomId}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(roomId);
+                    setError('Room ID copied to clipboard!');
+                    setTimeout(() => setError(null), 2000);
+                  }}
+                  className="ml-2 bg-indigo-600 hover:bg-indigo-700 text-white p-1 rounded text-xs"
+                  title="Copy Room ID"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+            <div className="text-sm">
+              <span className="bg-green-100 px-2 py-1 rounded text-green-800">{participants} participant{participants !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
           <div className={`flex flex-col ${isFullscreen ? '' : 'xl:flex-row'} gap-4 justify-center items-center w-full max-w-7xl mx-auto`}>
             <div className={`relative rounded-lg overflow-hidden shadow-lg bg-white w-full max-w-full md:max-w-2xl xl:max-w-3xl ${isFullscreen ? 'hidden' : ''}`}>
               <video 
@@ -818,9 +969,9 @@ const VirtualPainter = () => {
                 onChange={(e) => setFrameRate(Number(e.target.value))}
                 className="border rounded px-1 sm:px-2 py-1 text-sm sm:text-base"
               >
-                <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="15">15</option>
+                <option value="20">20</option>
                 <option value="30">30</option>
               </select>
             </div>

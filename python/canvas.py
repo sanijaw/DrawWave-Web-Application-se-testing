@@ -98,7 +98,27 @@ class Canvas:
             return False
 
     def get_canvas(self):
-        return self.canvas
+        return self.canvas.copy()
+        
+    def set_canvas(self, canvas_image):
+        """Set the canvas to the provided image.
+        Used for restoring canvas state from saved data.
+        """
+        if canvas_image is None:
+            return False
+            
+        # Ensure the image has the correct dimensions
+        if canvas_image.shape[0] != self.height or canvas_image.shape[1] != self.width:
+            canvas_image = cv2.resize(canvas_image, (self.width, self.height))
+            
+        # Ensure the image has 3 channels (BGR)
+        if len(canvas_image.shape) == 2 or canvas_image.shape[2] == 1:
+            canvas_image = cv2.cvtColor(canvas_image, cv2.COLOR_GRAY2BGR)
+        elif canvas_image.shape[2] == 4:  # RGBA
+            canvas_image = cv2.cvtColor(canvas_image, cv2.COLOR_RGBA2BGR)
+            
+        self.canvas = canvas_image.copy()
+        return True
         
     def draw_line(self, start_point, end_point, color=None):
         """
