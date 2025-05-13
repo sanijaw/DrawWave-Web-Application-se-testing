@@ -250,8 +250,8 @@ const VirtualPainter = () => {
             
           case 'mouse_draw':
             // Handle drawing data from other participants
-            if (canvasRef.current) {
-              const ctx = canvasRef.current.getContext('2d');
+            if (drawingCanvasRef.current) {
+              const ctx = drawingCanvasRef.current.getContext('2d');
               if (ctx) {
                 ctx.beginPath();
                 ctx.moveTo(data.start.x, data.start.y);
@@ -264,19 +264,17 @@ const VirtualPainter = () => {
             }
             break;
             
-          case 'mouse_draw':
-            // Handle drawing data from other participants
-            if (canvasRef.current) {
-              const ctx = canvasRef.current.getContext('2d');
-              if (ctx) {
-                ctx.beginPath();
-                ctx.moveTo(data.start.x, data.start.y);
-                ctx.lineTo(data.end.x, data.end.y);
-                ctx.strokeStyle = data.color;
-                ctx.lineWidth = 5;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-              }
+          case 'drawing_update':
+            // Handle complete drawing canvas updates from other users
+            if (drawingCanvasRef.current && data.drawing) {
+              const drawingImage = new Image();
+              drawingImage.onload = () => {
+                const drawingCtx = drawingCanvasRef.current?.getContext('2d');
+                if (drawingCtx && drawingCanvasRef.current) {
+                  drawingCtx.drawImage(drawingImage, 0, 0);
+                }
+              };
+              drawingImage.src = data.drawing;
             }
             break;
             
