@@ -213,7 +213,7 @@ class WebSocketServer:
                             with self.sessions[session_id]["lock"]:
                                 color = data.get("color", [0, 0, 0])
                                 self.sessions[session_id]["canvas"].change_color(color)
-
+    
                                 # Notify other clients about the color change
                                 color_message = json.dumps({
                                     "type": "color_changed",

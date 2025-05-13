@@ -19,11 +19,14 @@ const VirtualPainter = () => {
   const [inSession, setInSession] = useState<boolean>(false);
   const [cameraReady, setCameraReady] = useState<boolean>(false);
   const [userName, setUserName] = useState<string>('');
-  
+
   // Mouse drawing state
   const [isMouseDrawing, setIsMouseDrawing] = useState<boolean>(false);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [prevPoint, setPrevPoint] = useState<{x: number, y: number} | null>(null);
+
+  // UI state
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // Mouse drawing functions  
   const toggleMouseDrawing = () => {
@@ -554,6 +557,11 @@ const VirtualPainter = () => {
     }
   };
   
+  // Toggle fullscreen mode for canvas
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+  
   // Show session setup UI instead of canvas if not in a session
   const renderSessionControls = () => {
     if (inSession) {
@@ -674,8 +682,8 @@ const VirtualPainter = () => {
       {/* Only show main content when in a session */}
       {inSession && (
         <div>
-          <div className="flex flex-col xl:flex-row gap-4 justify-center items-center w-full max-w-7xl mx-auto">
-            <div className="relative rounded-lg overflow-hidden shadow-lg bg-white w-full max-w-full md:max-w-2xl xl:max-w-3xl">
+          <div className={`flex flex-col ${isFullscreen ? '' : 'xl:flex-row'} gap-4 justify-center items-center w-full max-w-7xl mx-auto`}>
+            <div className={`relative rounded-lg overflow-hidden shadow-lg bg-white w-full max-w-full md:max-w-2xl xl:max-w-3xl ${isFullscreen ? 'hidden' : ''}`}>
               <video 
                 ref={videoRef}
                 className="w-full h-auto" 
@@ -735,7 +743,24 @@ const VirtualPainter = () => {
               </div>
             </div>
             
-            <div className="relative rounded-lg overflow-hidden shadow-lg bg-white w-full max-w-full md:max-w-2xl xl:max-w-3xl" style={{position: 'relative'}}>
+            <div className="relative rounded-lg overflow-hidden shadow-lg bg-white w-full max-w-full md:max-w-2xl xl:max-w-3xl" style={{position: 'relative', ...(isFullscreen ? {width: '100%', maxWidth: '90vw', height: isFullscreen ? '75vh' : 'auto'} : {})}}>
+              <div className="absolute top-2 right-2 z-20">
+                <button
+                  onClick={toggleFullscreen}
+                  className="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-full flex items-center justify-center shadow-md transition-all"
+                  title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Mode'}
+                >
+                  {isFullscreen ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                    </svg>
+                  )}
+                </button>
+              </div>
               <div style={{position: 'relative', width: '100%', height: 'auto'}}>
                 <canvas 
                   ref={canvasRef}
@@ -760,7 +785,7 @@ const VirtualPainter = () => {
             </div>
           </div>
           
-          <div className="mt-4 sm:mt-6 flex flex-wrap justify-center gap-2 sm:gap-4">
+          <div className={`mt-4 sm:mt-6 flex flex-wrap justify-center gap-2 sm:gap-4 ${isFullscreen ? 'max-w-5xl mx-auto' : ''}`}>
             <button 
               onClick={handleClearCanvas}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200"
