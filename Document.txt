@@ -1,1 +1,29 @@
 .\start_all.ps1 = script run command
+
+
+
+Errors: 
+
+1. canvas drew lines should erase when clear on both side.
+2. Local Storage session store need to be added.
+3. Different camera feed permission issue.
+4. 
+5. 
+
+
+
+features: 
+
+1. Mouse erase option need to be added.
+2. Erase gesture mode need to be added.
+
+
+
+
+Changes: 
+
+1. Remove top session ID duplication UI.
+2. make a link to share session ID. when clicked, it will open a new tab with the session ID. (Optional)
+3. Improve UI design (colors, designs, canvas size increase).  
+4.  
+
