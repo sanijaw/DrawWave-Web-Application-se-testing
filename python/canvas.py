@@ -98,4 +98,56 @@ class Canvas:
             return False
 
     def get_canvas(self):
-        return self.canvas
+        return self.canvas.copy()
+        
+    def set_canvas(self, canvas_image):
+        """Set the canvas to the provided image.
+        Used for restoring canvas state from saved data.
+        """
+        if canvas_image is None:
+            return False
+            
+        # Ensure the image has the correct dimensions
+        if canvas_image.shape[0] != self.height or canvas_image.shape[1] != self.width:
+            canvas_image = cv2.resize(canvas_image, (self.width, self.height))
+            
+        # Ensure the image has 3 channels (BGR)
+        if len(canvas_image.shape) == 2 or canvas_image.shape[2] == 1:
+            canvas_image = cv2.cvtColor(canvas_image, cv2.COLOR_GRAY2BGR)
+        elif canvas_image.shape[2] == 4:  # RGBA
+            canvas_image = cv2.cvtColor(canvas_image, cv2.COLOR_RGBA2BGR)
+            
+        self.canvas = canvas_image.copy()
+        return True
+        
+    def draw_line(self, start_point, end_point, color=None):
+        """
+        Draw a line directly between two points with specified coordinates.
+        This is used for mouse drawing where we have exact pixel positions.
+        
+        Args:
+            start_point: Tuple of (x, y) coordinates for the start of the line
+            end_point: Tuple of (x, y) coordinates for the end of the line
+            color: Optional BGR color tuple. If None, uses the current color
+        """
+        if color is None:
+            color = self.color
+            
+        # Make sure points are within canvas bounds
+        x1, y1 = start_point
+        x2, y2 = end_point
+        
+        x1 = max(0, min(int(x1), self.width-1))
+        y1 = max(0, min(int(y1), self.height-1))
+        x2 = max(0, min(int(x2), self.width-1))
+        y2 = max(0, min(int(y2), self.height-1))
+        
+        # Draw the line
+        cv2.line(self.canvas, (x1, y1), (x2, y2), color, self.brush_size)
+        
+        # Add to history if changed
+        if not self.history or not np.array_equal(self.history[-1], self.canvas):
+            self.history.append(self.canvas.copy())
+            if len(self.history) > self.history_limit:
+                self.history.pop(0)  # Remove oldest item if we exceed limit
+            self.redo_stack.clear()
