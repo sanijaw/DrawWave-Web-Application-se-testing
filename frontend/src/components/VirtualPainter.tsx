@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReconnectionHandler from './ReconnectionHandler';
 
+// Interface for DrawAction to track drawing history
+interface DrawAction {
+  type: 'draw' | 'erase' | 'clear';
+  points?: { x: number, y: number }[];
+  timestamp: number;
+}
+
 const VirtualPainter = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -43,6 +50,10 @@ const VirtualPainter = () => {
   const [isMouseDrawing, setIsMouseDrawing] = useState<boolean>(false);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [prevPoint, setPrevPoint] = useState<{x: number, y: number} | null>(null);
+  
+  // Drawing history for undo functionality
+  const [drawHistory, setDrawHistory] = useState<DrawAction[]>([]);
+  const [currentDrawAction, setCurrentDrawAction] = useState<{points: {x: number, y: number}[], type: 'draw' | 'erase'} | null>(null);
 
   // UI state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -77,6 +88,12 @@ const VirtualPainter = () => {
   const startDrawing = (x: number, y: number) => {
     setIsDrawing(true);
     setPrevPoint({ x, y });
+    
+    // Initialize a new drawing action
+    setCurrentDrawAction({
+      type: 'draw',
+      points: [{ x, y }]
+    });
   };
   
   // Throttle function to limit the frequency of function calls
@@ -91,7 +108,6 @@ const VirtualPainter = () => {
     };
   };
 
-  // Throttled function for sending complete canvas updates
   const sendDrawingUpdate = useRef(
     throttle((canvas: HTMLCanvasElement) => {
       if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) return;
@@ -104,53 +120,160 @@ const VirtualPainter = () => {
     }, 500) // Throttle to one update every 500ms
   ).current;
 
-  const draw = (x: number, y: number) => {
-    if (!isDrawing || !prevPoint) return;
-    
-    const ctx = drawingCanvasRef.current?.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.beginPath();
-    ctx.moveTo(prevPoint.x, prevPoint.y);
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = selectedColor;
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    
-    // Send only line segment data to server for immediate sync
-    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-      wsConnection.send(JSON.stringify({
-        type: 'mouse_draw',
-        start: { x: prevPoint.x, y: prevPoint.y },
-        end: { x, y },
-        color: selectedColor
-      }));
-      
-      // Throttled full canvas update
-      if (drawingCanvasRef.current) {
-        sendDrawingUpdate(drawingCanvasRef.current);
-      }
-    }
-    
-    setPrevPoint({ x, y });
-  };
-  
   const stopDrawing = () => {
-    if (isDrawing && drawingCanvasRef.current && wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-      // Force send a final drawing update when stopping
-      const drawingDataURL = drawingCanvasRef.current.toDataURL('image/png');
-      wsConnection.send(JSON.stringify({
-        type: 'drawing_update',
-        drawing: drawingDataURL
-      }));
-    }
+    if (!isDrawing) return;
     
     setIsDrawing(false);
     setPrevPoint(null);
+    
+    // Finalize the current drawing action and add to history
+    if (currentDrawAction && currentDrawAction.points.length > 0) {
+      const newAction: DrawAction = {
+        type: currentDrawAction.type,
+        points: currentDrawAction.points,
+        timestamp: Date.now()
+      };
+      
+      setDrawHistory(prev => [...prev, newAction]);
+      
+      // Store drawing action in localStorage
+      const sessionDrawHistory = JSON.parse(localStorage.getItem(`drawwave_history_${sessionId}`) || '[]');
+      sessionDrawHistory.push(newAction);
+      localStorage.setItem(`drawwave_history_${sessionId}`, JSON.stringify(sessionDrawHistory));
+      
+      setCurrentDrawAction(null);
+    }
+    
+    // Send a final update to ensure the canvas state is synchronized
+    const drawingCanvas = drawingCanvasRef.current;
+    if (drawingCanvas && wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+      const drawingDataURL = drawingCanvas.toDataURL('image/png');
+      wsConnection.send(JSON.stringify({
+        type: 'drawing_update',
+        drawing: drawingDataURL,
+        isFinal: true
+      }));
+    }
   };
   
-  // Mouse event handlers
+  // Handle undo action
+  const handleUndo = useCallback(() => {
+    if (drawHistory.length === 0) return;
+    
+    // Remove the last action from history
+    const newHistory = [...drawHistory];
+    newHistory.pop();
+    setDrawHistory(newHistory);
+    
+    // Update localStorage
+    localStorage.setItem(`drawwave_history_${sessionId}`, JSON.stringify(newHistory));
+    
+    // Redraw canvas from scratch based on remaining history
+    const drawingCanvas = drawingCanvasRef.current;
+    if (drawingCanvas) {
+      const ctx = drawingCanvas.getContext('2d');
+      if (ctx) {
+        // Clear canvas
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        
+        // Replay all remaining drawing actions
+        for (const action of newHistory) {
+          if (action.type === 'clear') {
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+          } else if (action.type === 'draw' && action.points && action.points.length > 1) {
+            // Redraw the strokes
+            ctx.beginPath();
+            ctx.strokeStyle = selectedColor; // Note: this will use current color, not original
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            const scaleFactor = {
+              x: drawingCanvas.width / drawingCanvas.offsetWidth,
+              y: drawingCanvas.height / drawingCanvas.offsetHeight
+            };
+            
+            // Draw path from points
+            const firstPoint = action.points[0];
+            ctx.moveTo(
+              firstPoint.x * scaleFactor.x,
+              firstPoint.y * scaleFactor.y
+            );
+            
+            for (let i = 1; i < action.points.length; i++) {
+              const point = action.points[i];
+              ctx.lineTo(
+                point.x * scaleFactor.x,
+                point.y * scaleFactor.y
+              );
+            }
+            ctx.stroke();
+          }
+        }
+        
+        // Send the updated canvas to the server
+        if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+          const updatedDrawingDataURL = drawingCanvas.toDataURL('image/png');
+          wsConnection.send(JSON.stringify({
+            type: 'drawing_update',
+            drawing: updatedDrawingDataURL,
+            isFinal: true
+          }));
+        }
+      }
+    }
+  }, [drawHistory, sessionId, selectedColor, wsConnection]);
+  
+  const draw = (x: number, y: number) => {
+    if (!isDrawing || !prevPoint) return;
+
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return;
+
+    const ctx = drawingCanvas.getContext('2d');
+    if (!ctx) return;
+
+    const scaleFactor = {
+      x: drawingCanvas.width / drawingCanvas.offsetWidth,
+      y: drawingCanvas.height / drawingCanvas.offsetHeight
+    };
+
+    // Scale the coordinates
+    const scaledX = x * scaleFactor.x;
+    const scaledY = y * scaleFactor.y;
+    const scaledPrevX = prevPoint.x * scaleFactor.x;
+    const scaledPrevY = prevPoint.y * scaleFactor.y;
+
+    // Draw the line
+    ctx.beginPath();
+    ctx.strokeStyle = selectedColor;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.moveTo(scaledPrevX, scaledPrevY);
+    ctx.lineTo(scaledX, scaledY);
+    ctx.stroke();
+
+    // Update previous point
+    setPrevPoint({ x, y });
+    
+    // Update current drawing action with new point
+    if (currentDrawAction) {
+      setCurrentDrawAction(prev => {
+        if (prev) {
+          return {
+            ...prev,
+            points: [...prev.points, { x, y }]
+          };
+        }
+        return prev;
+      });
+    }
+    
+    // Throttled sending of drawing updates to the server
+    sendDrawingUpdate(drawingCanvas);
+  };
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isMouseDrawing) return;
     
@@ -467,7 +590,42 @@ const VirtualPainter = () => {
     };
   }, [inSession, sessionId, userName]);
 
-  // Initialize WebSocket connection and handle reconnection
+  // Setup keyboard event listener for Ctrl+Z
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl+Z (Windows/Linux) or Command+Z (Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        handleUndo();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleUndo]);
+  
+  // Load drawing history from localStorage when session changes
+  useEffect(() => {
+    if (sessionId) {
+      const savedHistory = localStorage.getItem(`drawwave_history_${sessionId}`);
+      if (savedHistory) {
+        try {
+          const parsedHistory = JSON.parse(savedHistory) as DrawAction[];
+          setDrawHistory(parsedHistory);
+        } catch (error) {
+          console.error('Error parsing drawing history:', error);
+          localStorage.removeItem(`drawwave_history_${sessionId}`);
+        }
+      } else {
+        setDrawHistory([]);
+      }
+    }
+  }, [sessionId]);
+  
+  // Use useEffect to setup WebSocket connection and event handlers
   useEffect(() => {
     connectWebSocket();
     
@@ -794,26 +952,41 @@ const VirtualPainter = () => {
   };
   
   const handleClearCanvas = () => {
-    if (wsConnection && wsConnection.readyState === WebSocket.OPEN && inSession) {
-      // Clear the drawing canvas locally first
-      if (drawingCanvasRef.current) {
-        const drawingCtx = drawingCanvasRef.current.getContext('2d');
-        if (drawingCtx) {
-          drawingCtx.clearRect(0, 0, drawingCanvasRef.current.width, drawingCanvasRef.current.height);
-        }
+    // Clear the drawing canvas
+    const drawingCanvas = drawingCanvasRef.current;
+    if (drawingCanvas) {
+      const ctx = drawingCanvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
       }
-      
-      // Then send clear canvas command to server for all clients
+    }
+
+    // Add clear action to history
+    const clearAction: DrawAction = {
+      type: 'clear',
+      timestamp: Date.now()
+    };
+    setDrawHistory(prev => [...prev, clearAction]);
+    
+    // Update localStorage
+    const sessionDrawHistory = JSON.parse(localStorage.getItem(`drawwave_history_${sessionId}`) || '[]');
+    sessionDrawHistory.push(clearAction);
+    localStorage.setItem(`drawwave_history_${sessionId}`, JSON.stringify(sessionDrawHistory));
+
+    // If we're in a session, broadcast the clear canvas command
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN && sessionId) {
       wsConnection.send(JSON.stringify({
-        type: 'clear_canvas'
+        type: 'clear_canvas',
+        sessionId: sessionId
       }));
       
-      // Also send empty drawing update to ensure drawing layer is cleared on all clients
-      if (drawingCanvasRef.current) {
-        const emptyDrawing = drawingCanvasRef.current.toDataURL('image/png');
+      // Also send an empty drawing update to keep the server's state in sync
+      const emptyDrawingDataURL = drawingCanvasRef.current?.toDataURL('image/png');
+      if (emptyDrawingDataURL) {
         wsConnection.send(JSON.stringify({
           type: 'drawing_update',
-          drawing: emptyDrawing
+          drawing: emptyDrawingDataURL,
+          isFinal: true
         }));
       }
     }
@@ -1141,6 +1314,13 @@ const VirtualPainter = () => {
               className={`${isMouseDrawing ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'} text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200`}
             >
               {isMouseDrawing ? 'Mouse Drawing: ON' : 'Mouse Drawing: OFF'}
+            </button>
+            <button 
+              onClick={handleUndo}
+              disabled={drawHistory.length === 0}
+              className={`${drawHistory.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'} text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200`}
+            >
+              Undo (Ctrl+Z)
             </button>
             <button 
               onClick={() => {
