@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReconnectionHandler from './ReconnectionHandler';
 
 const VirtualPainter = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -9,17 +10,34 @@ const VirtualPainter = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState('#000000');
   const requestRef = useRef<number | null>(null);
-  const [frameRate, setFrameRate] = useState(15); // frames per second - increased default
+  const [frameRate, setFrameRate] = useState(5); // frames per second - increased default
   
   // Session management states
-  const [sessionId, setSessionId] = useState(''); // Current session ID when connected
-  const [roomId, setRoomId] = useState(''); // Room ID associated with the session
+  const [sessionId, setSessionId] = useState(() => {
+    return localStorage.getItem('drawwave_sessionId') || '';
+  }); // Current session ID when connected
+  const [roomId, setRoomId] = useState(() => {
+    return localStorage.getItem('drawwave_roomId') || '';
+  }); // Room ID associated with the session
+  
+  // Connection status for user feedback
+  const [reconnecting, setReconnecting] = useState<boolean>(false);
+  const [reconnectStatus, setReconnectStatus] = useState<string>('');
+  const [reconnectAttempts, setReconnectAttempts] = useState<number>(0);
+  const maxReconnectAttempts = 3; // Maximum number of reconnection attempts
+  const reconnectTimeoutsRef = useRef<number[]>([]);
+  
+
   const [createRoomInput, setCreateRoomInput] = useState<string>('');
   const [joinSessionInput, setJoinSessionInput] = useState<string>('');
   const [participants, setParticipants] = useState<number>(0);
-  const [inSession, setInSession] = useState<boolean>(false);
+  const [inSession, setInSession] = useState<boolean>(() => {
+    return localStorage.getItem('drawwave_inSession') === 'true';
+  });
   const [cameraReady, setCameraReady] = useState<boolean>(false);
-  const [userName, setUserName] = useState<string>('');
+  const [userName, setUserName] = useState<string>(() => {
+    return localStorage.getItem('drawwave_userName') || '';
+  });
 
   // Mouse drawing state
   const [isMouseDrawing, setIsMouseDrawing] = useState<boolean>(false);
@@ -29,6 +47,8 @@ const VirtualPainter = () => {
   // UI state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
+  // We'll define the handleReconnect function after connectWebSocket is defined
+  
   // Mouse drawing functions  
   const toggleMouseDrawing = () => {
     const newValue = !isMouseDrawing;
@@ -173,183 +193,289 @@ const VirtualPainter = () => {
     stopDrawing();
   };
 
-  // Initialize websocket connection
-  useEffect(() => {
+  // Function to clear session data from localStorage
+  const clearSessionFromLocalStorage = () => {
+    localStorage.removeItem('drawwave_sessionId');
+    localStorage.removeItem('drawwave_roomId');
+    localStorage.removeItem('drawwave_inSession');
+    // We keep userName for convenience
+    console.log('Session data cleared from localStorage');
+  };
+
+  // Function to connect to WebSocket server
+  const connectWebSocket = useCallback(() => {
+    // Clear any existing reconnection timeouts
+    reconnectTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+    reconnectTimeoutsRef.current = [];
+    
     // Get host from current location or use default
     const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
     const WS_URL = `ws://${host}:8765`;
     
     console.log('Connecting to WebSocket server at:', WS_URL);
     
-    let ws: WebSocket;
+    // Create a new WebSocket connection
+    const ws = new WebSocket(WS_URL);
+    setWsConnection(ws);
     
-    try {
-      ws = new WebSocket(WS_URL);
-      setWsConnection(ws);
-    } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
-      setError('Failed to connect to drawing server. Please refresh the page.');
-      return () => {}; // Empty cleanup function if connection fails
-    }
-    
+    // Setup WebSocket event handlers
     ws.onopen = () => {
       console.log('Connected to WebSocket server');
       setConnected(true);
+      setReconnecting(false);
       setError(null);
+      setReconnectAttempts(0);
+      
+      // If we're in a session, attempt to reconnect using join_session
+      if (inSession && sessionId) {
+        console.log('Attempting to reconnect to existing session:', sessionId);
+        ws.send(JSON.stringify({
+          type: 'join_session',
+          session_id: sessionId,
+          user_name: userName
+        }));
+      }
     };
     
-    ws.onclose = () => {
-      console.log('Disconnected from WebSocket server');
+    ws.onclose = (event) => {
+      console.log(`WebSocket connection closed: ${event.code}`);
       setConnected(false);
-      setError('Connection to server lost. Please refresh the page.');
-      setInSession(false); // Discard session state on disconnect
+      
+      // Only show error if we were already in a session
+      if (inSession) {
+        setError('Connection to drawing server lost');
+      }
     };
     
-    ws.onerror = (event) => {
-      console.error('WebSocket error:', event);
-      setError('WebSocket connection error. Please refresh the page.');
+    ws.onerror = () => {
+      console.error('WebSocket connection error');
       setConnected(false);
+      
+      // Only show error if we were already in a session
+      if (inSession) {
+        setError('WebSocket connection error');
+      }
     };
     
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        let canvasImage: HTMLImageElement;
+        console.log('Received WebSocket message:', data.type);
         
-        switch (data.type) {
-          case 'clear_canvas':
-            handleClearCanvas();
+        // Handle different message types
+        switch(data.type) {
+          case 'error':
+            console.error('Connection error:', data.message);
+            setError(`Error: ${data.message}`);
+            
+            // If the error is session not found, clear session data
+            if (data.errorCode === 'session_not_found' || data.errorCode === 'no_active_session') {
+              setInSession(false);
+              clearSessionFromLocalStorage();
+            }
             break;
             
-          case 'canvas_update':
-            canvasImage = new Image();
-            canvasImage.onload = () => {
-              const ctx = canvasRef.current?.getContext('2d') ?? null;
-              if (ctx && canvasRef.current) {
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-                ctx.drawImage(canvasImage, 0, 0);
-              }
-            };
-            canvasImage.src = data.canvas;
-            break;
-            
+          // Handle other message types
           case 'session_created':
             setSessionId(data.session_id);
-            setRoomId(data.room_id); // Store the room ID
+            setRoomId(data.room_id);
             setInSession(true);
-            setParticipants(1); // Creator is the first participant
-            setError(null);
-            console.log('Room created successfully. Session ID:', data.session_id, 'Room ID:', data.room_id);
-            // Clear input fields since we're now in a session
-            setCreateRoomInput('');
-            setJoinSessionInput('');
+            setParticipants(1);
+            
+            // Save session data to localStorage
+            localStorage.setItem('drawwave_sessionId', data.session_id);
+            localStorage.setItem('drawwave_roomId', data.room_id);
+            localStorage.setItem('drawwave_inSession', 'true');
+            localStorage.setItem('drawwave_userName', userName);
             break;
             
           case 'session_joined':
+            console.log('Successfully joined/reconnected to session:', data.session_id);
             setSessionId(data.session_id);
-            setRoomId(data.room_id); // Store the room ID
+            setRoomId(data.room_id);
             setInSession(true);
-            setParticipants(data.participants);
-            console.log('Successfully joined room. Session ID:', data.session_id, 'Room ID:', data.room_id);
+            setParticipants(data.participants || 1);
             
-            // Set initial canvas state if one exists
+            // Clear any reconnection states
+            setReconnecting(false);
+            setReconnectAttempts(0);
+            
+            // Show success message if we were reconnecting
+            if (reconnecting) {
+              setReconnectStatus('Successfully reconnected to session!');
+              // Clear reconnection status after a delay
+              setTimeout(() => {
+                setReconnectStatus('');
+              }, 3000);
+            }
+            
+            // Save session data to localStorage
+            localStorage.setItem('drawwave_sessionId', data.session_id);
+            localStorage.setItem('drawwave_roomId', data.room_id);
+            localStorage.setItem('drawwave_inSession', 'true');
+            localStorage.setItem('drawwave_userName', userName);
+            
+            // Apply canvas and drawing data if available
             if (data.canvas) {
-              canvasImage = new Image();
-              canvasImage.onload = () => {
-                const ctx = canvasRef.current?.getContext('2d') ?? null;
-                if (ctx && canvasRef.current) {
-                  ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-                  ctx.drawImage(canvasImage, 0, 0);
+              console.log('Restoring canvas state from server');
+              const canvasImg = new Image();
+              canvasImg.onload = () => {
+                if (canvasRef.current) {
+                  const ctx = canvasRef.current.getContext('2d');
+                  if (ctx) {
+                    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                    ctx.drawImage(canvasImg, 0, 0);
+                  }
                 }
               };
-              canvasImage.src = data.canvas;
+              canvasImg.src = data.canvas;
             }
             
-            // Also restore any drawing layer data if it exists
-            if (data.drawing && drawingCanvasRef.current) {
-              const drawingImage = new Image();
-              drawingImage.onload = () => {
-                const drawingCtx = drawingCanvasRef.current?.getContext('2d');
-                if (drawingCtx && drawingCanvasRef.current) {
-                  // Keep existing drawings
-                  drawingCtx.drawImage(drawingImage, 0, 0);
+            if (data.drawing) {
+              console.log('Restoring drawing layer from server');
+              const drawingImg = new Image();
+              drawingImg.onload = () => {
+                if (drawingCanvasRef.current) {
+                  const ctx = drawingCanvasRef.current.getContext('2d');
+                  if (ctx) {
+                    ctx.clearRect(0, 0, drawingCanvasRef.current.width, drawingCanvasRef.current.height);
+                    ctx.drawImage(drawingImg, 0, 0);
+                  }
                 }
               };
-              drawingImage.src = data.drawing;
+              drawingImg.src = data.drawing;
             }
             
-            // Clear input fields since we're now in a session
-            setCreateRoomInput('');
-            setJoinSessionInput('');
+            // Clear any error messages when successfully joined
             setError(null);
             break;
             
-          case 'participant_joined':
-            setParticipants(data.participants);
-            break;
-            
-          case 'participant_left':
-            setParticipants(data.participants);
-            break;
-            
-          case 'color_changed':
-            // Optionally handle color changes from other participants
-            break;
-            
-          case 'mouse_draw':
-            // Handle drawing data from other participants
-            if (drawingCanvasRef.current) {
-              const ctx = drawingCanvasRef.current.getContext('2d');
-              if (ctx) {
-                ctx.beginPath();
-                ctx.moveTo(data.start.x, data.start.y);
-                ctx.lineTo(data.end.x, data.end.y);
-                ctx.strokeStyle = data.color;
-                ctx.lineWidth = 5;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-              }
+          case 'canvas_update':
+            if (data.canvas) {
+              const img = new Image();
+              img.onload = () => {
+                if (canvasRef.current) {
+                  const ctx = canvasRef.current.getContext('2d');
+                  if (ctx) ctx.drawImage(img, 0, 0);
+                }
+              };
+              img.src = data.canvas;
             }
             break;
             
           case 'drawing_update':
-            // Handle complete drawing canvas updates from other users
-            if (drawingCanvasRef.current && data.drawing) {
-              const drawingImage = new Image();
-              drawingImage.onload = () => {
-                const drawingCtx = drawingCanvasRef.current?.getContext('2d');
-                if (drawingCtx && drawingCanvasRef.current) {
-                  drawingCtx.drawImage(drawingImage, 0, 0);
+            if (data.drawing) {
+              const img = new Image();
+              img.onload = () => {
+                if (drawingCanvasRef.current) {
+                  const ctx = drawingCanvasRef.current.getContext('2d');
+                  if (ctx) ctx.drawImage(img, 0, 0);
                 }
               };
-              drawingImage.src = data.drawing;
+              img.src = data.drawing;
             }
             break;
             
-          case 'error':
-            console.error('Server error:', data.message);
-            setError(`Server error: ${data.message}`);
-            // If the error is related to session joining, we'll keep the user in the form view
-            if (data.errorCode === 'session_not_found' || data.errorCode === 'invalid_session') {
-              setInSession(false);
+          case 'participant_joined':
+          case 'participant_left':
+            setParticipants(data.participants);
+            break;
+            
+          case 'clear_canvas':
+            if (canvasRef.current) {
+              const ctx = canvasRef.current.getContext('2d');
+              if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
+            if (drawingCanvasRef.current) {
+              const ctx = drawingCanvasRef.current.getContext('2d');
+              if (ctx) ctx.clearRect(0, 0, drawingCanvasRef.current.width, drawingCanvasRef.current.height);
             }
             break;
             
           default:
+            console.log('Unhandled message type:', data.type);
             break;
         }
-      } catch (e) {
-        console.error('Error parsing WebSocket message:', e);
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
       }
     };
     
+    return ws;
+  }, [inSession, sessionId, userName]);
+  
+  // Function to handle manual reconnection from the ReconnectionHandler component
+  const handleReconnect = useCallback(() => {
+    console.log('Manual reconnection requested');
+    setReconnectAttempts(0); // Reset attempt counter for manual reconnection
+    
+    // If we have session data in localStorage, try to reconnect
+    const storedSessionId = localStorage.getItem('drawwave_sessionId');
+    const storedUserName = localStorage.getItem('drawwave_userName');
+    
+    if (storedSessionId && storedUserName && wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+      // Send a join_session message to reconnect
+      wsConnection.send(JSON.stringify({
+        type: 'join_session',
+        session_id: storedSessionId,
+        user_name: storedUserName
+      }));
+      console.log('Reconnection attempt sent with session ID:', storedSessionId);
+    } else {
+      // If WebSocket is not connected, reconnect it first
+      connectWebSocket();
+      console.log('WebSocket not connected, reconnecting first');
+    }
+  }, [connectWebSocket, wsConnection]);
+
+  // Function to attempt reconnection with exponential backoff
+  const attemptReconnect = useCallback(() => {
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      console.error(`Failed to reconnect after ${maxReconnectAttempts} attempts`);
+      setError('Failed to connect after several attempts. Please refresh the page.');
+      return;
+    }
+    
+    setReconnectAttempts(prev => prev + 1);
+    const attemptNumber = reconnectAttempts + 1;
+    const delay = Math.min(1000 * Math.pow(2, attemptNumber - 1), 10000); // Exponential backoff capped at 10s
+    
+    console.log(`Attempting to reconnect in ${delay/1000} seconds (attempt ${attemptNumber})`);
+    setReconnectStatus(`Reconnecting to server... (attempt ${attemptNumber}/${maxReconnectAttempts})`);
+    setReconnecting(true);
+    
+    const timeoutId = window.setTimeout(() => {
+      connectWebSocket();
+    }, delay);
+    
+    reconnectTimeoutsRef.current.push(timeoutId);
+  }, [reconnectAttempts, maxReconnectAttempts, connectWebSocket]);
+
+  useEffect(() => {
     return () => {
-      console.log('Closing WebSocket connection');
-      if (ws && ws.readyState !== WebSocket.CLOSED) {
-        ws.close();
+      if (wsConnection) {
+        wsConnection.onopen = null;
+        wsConnection.onclose = null;
+        wsConnection.onerror = null;
+        wsConnection.onmessage = null;
+        wsConnection.close();
       }
+      
+      // Clear any reconnection timeouts
+      reconnectTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+      reconnectTimeoutsRef.current = [];
     };
-  }, []);
+  }, [inSession, sessionId, userName]);
+
+  // Initialize WebSocket connection and handle reconnection
+  useEffect(() => {
+    connectWebSocket();
+    
+    // Setup automatic reconnection when connection is lost
+    if (!connected && inSession) {
+      attemptReconnect();
+    }
+  }, [inSession, connected, connectWebSocket, attemptReconnect]);
 
   // Initialize webcam
   useEffect(() => {
@@ -457,11 +583,35 @@ const VirtualPainter = () => {
             return;
           }
           
-          // Only send frame to server if not in mouse drawing mode
-          wsConnection.send(JSON.stringify({
-            type: 'frame',
-            frame
-          }));
+          // Only send frame to server if:  
+          // 1. We're not in mouse drawing mode
+          // 2. We have a valid WebSocket connection
+          // 3. We're actually in a session
+          // 4. We have a valid session ID
+          if (wsConnection && 
+              wsConnection.readyState === WebSocket.OPEN && 
+              inSession && 
+              sessionId) {
+            wsConnection.send(JSON.stringify({
+              type: 'frame',
+              frame
+            }));
+          } else if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+            // If we're not in a session but trying to send frames, that's an issue
+            // Log it once rather than repeatedly using a local variable to avoid spamming console
+            const warningKey = 'drawwave_logged_session_warning';
+            const hasLoggedWarning = sessionStorage.getItem(warningKey) === 'true';
+            
+            if (!hasLoggedWarning) {
+              console.warn('Not sending frames - no active session');
+              sessionStorage.setItem(warningKey, 'true');
+              
+              // Reset this flag after a delay so we don't spam the console but will log again if the issue persists
+              setTimeout(() => {
+                sessionStorage.removeItem(warningKey);
+              }, 5000);
+            }
+          }
         } catch (err) {
           console.error('Error capturing frame:', err);
         }
@@ -491,68 +641,71 @@ const VirtualPainter = () => {
 
   // Session management functions
   // Modified handleCreateSession
-const handleCreateSession = async () => {
-  // Validate that the user has entered a username
-  if (!userName.trim()) {
-    setError('Please enter your name');
-    return;
-  }
-  
-  // Validate that a room code has been generated
-  if (!createRoomInput.trim()) {
-    setError('Please generate a room code first');
-    return;
-  }
-  
-  try {
-    // Generate a unique session ID (different from room ID)
-    const generatedSessionId = createRoomInput.trim() + '-' + Math.random().toString(36).substring(2, 7);
-    
-    // Get host from current location or use default for API
-    const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
-    const API_URL = `http://${host}:5000/api/sessions/create`;
-    console.log('Creating session with backend at:', API_URL);
-    
-    // Save session to MongoDB with both sessionId and roomId
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sessionId: generatedSessionId,
-        roomId: createRoomInput.trim(),
-        userName: userName.trim()
-      }),
-    });
-    
-    console.log('Session creation response status:', response.status);
-    const data = await response.json();
-    console.log('Session creation response:', data);
-    
-    if (!data.success) {
-      setError(data.message);
+  const handleCreateSession = async () => {
+    // Validate that the user has entered a username
+    if (!userName.trim()) {
+      setError('Please enter your name');
       return;
     }
     
-    // If MongoDB save is successful, connect via WebSocket
-    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-      console.log('Sending create session request to WebSocket server');
-      wsConnection.send(JSON.stringify({
-        type: 'create_session',
-        session_id: generatedSessionId,
-        room_id: createRoomInput.trim(),
-        user_name: userName
-      }));
-    } else {
-      console.error('WebSocket connection not open');
-      setError('WebSocket connection not available. Please refresh the page.');
+    // Validate that a room code has been generated
+    if (!createRoomInput.trim()) {
+      setError('Please generate a room code first');
+      return;
     }
-  } catch (error) {
-    setError('Failed to create session. Please try again.');
-    console.error('Create session error:', error);
-  }
-};
+    
+    // Save username in localStorage as soon as they attempt to create
+    localStorage.setItem('drawwave_userName', userName);
+    
+    try {
+      // Generate a unique session ID (different from room ID)
+      const generatedSessionId = createRoomInput.trim() + '-' + Math.random().toString(36).substring(2, 7);
+      
+      // Get host from current location or use default for API
+      const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+      const API_URL = `http://${host}:5000/api/sessions/create`;
+      console.log('Creating session with backend at:', API_URL);
+      
+      // Save session to MongoDB with both sessionId and roomId
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: generatedSessionId,
+          roomId: createRoomInput.trim(),
+          userName: userName.trim()
+        }),
+      });
+      
+      console.log('Session creation response status:', response.status);
+      const data = await response.json();
+      console.log('Session creation response:', data);
+      
+      if (!data.success) {
+        setError(data.message);
+        return;
+      }
+      
+      // If MongoDB save is successful, connect via WebSocket
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        console.log('Sending create session request to WebSocket server');
+        wsConnection.send(JSON.stringify({
+          type: 'create_session',
+          session_id: generatedSessionId,
+          room_id: createRoomInput.trim(),
+          user_name: userName
+        }));
+      } else {
+        console.error('WebSocket connection not open');
+        setError('WebSocket connection not available. Please refresh the page.');
+      }
+    } catch (error) {
+      setError('Failed to create session. Please try again.');
+      console.error('Create session error:', error);
+    }
+  };
   
   const generateRoomId = () => {
     // Generate a random 6-character alphanumeric room ID
@@ -591,6 +744,9 @@ const handleCreateSession = async () => {
       setError('Please enter your name');
       return;
     }
+    
+    // Save username in localStorage as soon as they attempt to join
+    localStorage.setItem('drawwave_userName', userName);
     
     try {
       // Get host from current location or use default for API
@@ -693,6 +849,19 @@ const handleCreateSession = async () => {
           <div className="text-black flex flex-wrap gap-2 items-center">
             <span className="font-medium text-black">Session ID:</span> <span className="bg-white px-2 py-1 rounded text-black">{sessionId}</span>
             <span className="font-medium text-black ml-0 sm:ml-4">Participants:</span> <span className="bg-white px-2 py-1 rounded text-black">{participants}</span>
+            <button 
+              onClick={() => {
+                // Clear session data
+                clearSessionFromLocalStorage();
+                setInSession(false);
+                setSessionId('');
+                setRoomId('');
+                window.location.reload(); // Force a refresh to ensure clean state
+              }}
+              className="ml-0 sm:ml-4 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
+            >
+              Leave Room
+            </button>
           </div>
           <div className="text-sm text-black">
             Share this ID with others to let them join your drawing session
@@ -791,6 +960,8 @@ const handleCreateSession = async () => {
     );
   };
 
+  // The handleReconnect function is defined above near the connectWebSocket function
+
   return (
     <div className="max-w-full w-full mx-auto px-0 sm:px-1">
       {error && (
@@ -798,6 +969,28 @@ const handleCreateSession = async () => {
           {error}
         </div>
       )}
+      
+      {reconnecting && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 sm:px-4 py-2 sm:py-3 rounded mb-4 text-sm sm:text-base max-w-7xl mx-auto flex items-center">
+          <span className="inline-block mr-2 animate-spin">⟳</span>
+          <span>{reconnectStatus || 'Reconnecting to previous session...'}</span>
+        </div>
+      )}
+      
+      {!reconnecting && reconnectStatus && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-3 sm:px-4 py-2 sm:py-3 rounded mb-4 text-sm sm:text-base max-w-7xl mx-auto">
+          {reconnectStatus}
+        </div>
+      )}
+      
+      {/* ReconnectionHandler component */}
+      <ReconnectionHandler
+        isConnected={connected}
+        inSession={inSession}
+        sessionId={sessionId}
+        userName={userName}
+        onReconnect={handleReconnect}
+      />
       
       {/* Session controls */}
       {renderSessionControls()}
@@ -948,6 +1141,17 @@ const handleCreateSession = async () => {
               className={`${isMouseDrawing ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'} text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200`}
             >
               {isMouseDrawing ? 'Mouse Drawing: ON' : 'Mouse Drawing: OFF'}
+            </button>
+            <button 
+              onClick={() => {
+                if (wsConnection) {
+                  console.log('Testing reconnection by closing the WebSocket');
+                  wsConnection.close();
+                }
+              }}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200"
+            >
+              Test Reconnection
             </button>
             
             <div className="flex items-center">

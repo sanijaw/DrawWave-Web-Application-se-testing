@@ -64,18 +64,29 @@ router.post('/validate', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Session not found' });
     }
     
-    // Add participant to the session
-    session.participants.push({ name: userName });
-    await session.save();
+    // Check if user already exists in this session
+    let existingUser = await User.findOne({ userName, sessionId });
+    let userId;
     
-    // Create a user record for this participant
-    const newUser = new User({
-      userName,
-      sessionId: session.sessionId,
-      roomId: session.roomId
-    });
-    
-    await newUser.save();
+    if (!existingUser) {
+      // Only add participant to the session if they don't already exist
+      if (!session.participants.some(p => p.name === userName)) {
+        session.participants.push({ name: userName });
+        await session.save();
+      }
+      
+      // Create a user record for this participant
+      const newUser = new User({
+        userName,
+        sessionId: session.sessionId,
+        roomId: session.roomId
+      });
+      
+      await newUser.save();
+      userId = newUser._id;
+    } else {
+      userId = existingUser._id;
+    }
     
     res.status(200).json({
       success: true,
@@ -84,7 +95,7 @@ router.post('/validate', async (req, res) => {
         roomId: session.roomId,
         createdBy: session.createdBy,
         participantCount: session.participants.length,
-        userId: newUser._id
+        userId: userId
       }
     });
   } catch (error) {
@@ -96,6 +107,12 @@ router.post('/validate', async (req, res) => {
 router.get('/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
+    
+    // Special case for 'active' endpoint which returns all active sessions
+    if (sessionId === 'active') {
+      return await getAllActiveSessions(req, res);
+    }
+    
     const session = await Session.findOne({ sessionId });
     
     if (!session) {
@@ -118,6 +135,36 @@ router.get('/:sessionId', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// Get all active sessions
+async function getAllActiveSessions(req, res) {
+  try {
+    // Find all sessions that have been updated in the last 24 hours
+    const activeSessions = await Session.find({
+      lastUpdated: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+    }).sort({ lastUpdated: -1 });
+    
+    const sessionData = activeSessions.map(session => ({
+      sessionId: session.sessionId,
+      roomId: session.roomId,
+      createdBy: session.createdBy,
+      participants: session.participants.length,
+      createdAt: session.createdAt,
+      lastUpdated: session.lastUpdated,
+      // Don't include full image data here to keep response size smaller
+      hasCanvasData: !!session.canvasData,
+      hasDrawingLayerData: !!session.drawingLayerData
+    }));
+    
+    res.status(200).json({
+      success: true,
+      data: sessionData
+    });
+  } catch (error) {
+    console.error('Error getting active sessions:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
 
 // Update canvas state
 router.post('/update-canvas', async (req, res) => {
