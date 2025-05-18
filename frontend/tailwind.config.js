@@ -6,6 +6,18 @@ export default {
   ],
   theme: {
     extend: {
+      perspective: {
+        '500': '500px',
+        '1000': '1000px',
+      },
+      transformStyle: {
+        'preserve-3d': 'preserve-3d',
+      },
+      translate: {
+        'z-4': '4px',
+        'z-8': '8px',
+        'z-[-4px]': '-4px',
+      },
       animation: {
         'fadeIn': 'fadeIn 0.5s ease-in-out',
         'float': 'float 3s ease-in-out infinite',
@@ -15,6 +27,8 @@ export default {
         'spin-slow': 'spin 3s linear infinite',
         'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
         'gradient-x': 'gradient-x 5s ease infinite',
+        'shine': 'shine 1.5s ease-in-out infinite',
+        'typing': 'typing 3.5s steps(35, end)',
       },
       keyframes: {
         fadeIn: {
@@ -38,6 +52,14 @@ export default {
             'background-size': '200% 200%',
             'background-position': 'right center'
           }
+        },
+        'shine': {
+          '0%': { transform: 'translateX(-100%)' },
+          '50%, 100%': { transform: 'translateX(100%)' }
+        },
+        'typing': {
+          'from': { width: '0' },
+          'to': { width: '100%' }
         },
       },
       backgroundImage: {
