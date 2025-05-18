@@ -19,6 +19,7 @@ mongoose.connect(process.env.MONGODB_URI)
 // Routes
 app.use('/api/sessions', require('./routes/sessions'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/rooms', require('./routes/rooms'));
 
 // Basic route
 app.get('/', (req, res) => {

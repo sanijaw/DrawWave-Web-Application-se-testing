@@ -30,6 +30,23 @@ class HandTracker:
                 self.mp_drawing.draw_landmarks(image, landmarks, self.mp_hands.HAND_CONNECTIONS)
         return image, result
 
+    def process_frame(self, image):
+        """Process a frame and return the processed image, detected landmarks, and recognized gesture"""
+        # First detect hands in the image
+        processed_image, result = self.detect_hands(image)
+        
+        # Get the first hand landmarks if detected
+        landmarks = None
+        if result.multi_hand_landmarks:
+            landmarks = result.multi_hand_landmarks[0]
+        
+        # Recognize the gesture based on the landmarks
+        gesture = "idle"
+        if landmarks:
+            gesture = self.recognize_gesture(landmarks)
+            
+        return processed_image, landmarks, gesture
+        
     def recognize_gesture(self, landmarks):
         if landmarks:
             # Get fingertip and base landmarks

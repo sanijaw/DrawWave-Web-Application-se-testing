@@ -8,7 +8,12 @@ interface DrawAction {
   timestamp: number;
 }
 
-const VirtualPainter = () => {
+// Interface for VirtualPainter props
+interface VirtualPainterProps {
+  onSessionUpdate?: (isInSession: boolean, currentSessionId: string, hostStatus: boolean) => void;
+}
+
+const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -57,12 +62,80 @@ const VirtualPainter = () => {
 
   // UI state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  
+  // Function to handle leaving a room
+  const handleLeaveRoom = useCallback(() => {
+    console.log('Leaving room...');
+    
+    // Notify server about participant leaving if connected
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+      try {
+        // The server doesn't have a specific 'leave_session' message type,
+        // but we'll send a message anyway for future compatibility
+        wsConnection.send(JSON.stringify({
+          type: 'participant_leaving',
+          session_id: sessionId,
+          user_name: userName
+        }));
+      } catch (error) {
+        console.error('Error sending leave message:', error);
+      }
+    }
+    
+    // Clear session data
+    clearSessionFromLocalStorage();
+    
+    // Update state
+    setInSession(false);
+    setSessionId('');
+    setRoomId('');
+    
+    // Reset canvas if needed
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+    if (drawingCanvasRef.current) {
+      const ctx = drawingCanvasRef.current.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, drawingCanvasRef.current.width, drawingCanvasRef.current.height);
+    }
+    
+    // Reset drawing history
+    setDrawHistory([]);
+    
+    // Notify App component about session state change
+    if (onSessionUpdate) {
+      onSessionUpdate(false, '', false);
+    }
+    
+    console.log('Successfully left room');
+  }, [wsConnection, sessionId, userName, onSessionUpdate]);
 
   // We'll define the handleReconnect function after connectWebSocket is defined
+  
+  // Add event listener for the leaveRoom event
+  useEffect(() => {
+    const leaveRoomListener = () => {
+      handleLeaveRoom();
+    };
+    
+    window.addEventListener('leaveRoom', leaveRoomListener);
+    
+    return () => {
+      window.removeEventListener('leaveRoom', leaveRoomListener);
+    };
+  }, [handleLeaveRoom]);
   
   // Mouse drawing functions  
   const toggleMouseDrawing = () => {
     const newValue = !isMouseDrawing;
+    
+    // Save the current drawing canvas state before toggling
+    let currentDrawingState = null;
+    if (drawingCanvasRef.current) {
+      currentDrawingState = drawingCanvasRef.current.toDataURL('image/png');
+    }
+    
     setIsMouseDrawing(newValue);
     
     // If mouse drawing is turned on, pause the video processing to stop gesture drawing
@@ -83,8 +156,25 @@ const VirtualPainter = () => {
         });
       }
     }
+    
+    // Restore the drawing canvas state after toggling
+    if (currentDrawingState && drawingCanvasRef.current) {
+      setTimeout(() => {
+        const img = new Image();
+        img.onload = () => {
+          if (drawingCanvasRef.current) {
+            const ctx = drawingCanvasRef.current.getContext('2d');
+            if (ctx) {
+              // Don't clear the canvas, just draw the saved state on top
+              ctx.drawImage(img, 0, 0);
+            }
+          }
+        };
+        img.src = currentDrawingState;
+      }, 50); // Small delay to ensure canvas is ready
+    }
   };
-  
+
   const startDrawing = (x: number, y: number) => {
     setIsDrawing(true);
     setPrevPoint({ x, y });
@@ -321,8 +411,13 @@ const VirtualPainter = () => {
     localStorage.removeItem('drawwave_sessionId');
     localStorage.removeItem('drawwave_roomId');
     localStorage.removeItem('drawwave_inSession');
-    // We keep userName for convenience
+    // Don't remove userName as we want to remember it for next time
     console.log('Session data cleared from localStorage');
+    
+    // Notify App component about session state change
+    if (onSessionUpdate) {
+      onSessionUpdate(false, '', false);
+    }
   };
 
   // Function to connect to WebSocket server
@@ -346,6 +441,7 @@ const VirtualPainter = () => {
       console.log('Connected to WebSocket server');
       setConnected(true);
       setReconnecting(false);
+      setReconnectStatus(''); // Clear reconnection status message
       setError(null);
       setReconnectAttempts(0);
       
@@ -395,6 +491,11 @@ const VirtualPainter = () => {
             if (data.errorCode === 'session_not_found' || data.errorCode === 'no_active_session') {
               setInSession(false);
               clearSessionFromLocalStorage();
+              
+              // Notify App component about session state change
+              if (onSessionUpdate) {
+                onSessionUpdate(false, '', false);
+              }
             }
             break;
             
@@ -410,6 +511,11 @@ const VirtualPainter = () => {
             localStorage.setItem('drawwave_roomId', data.room_id);
             localStorage.setItem('drawwave_inSession', 'true');
             localStorage.setItem('drawwave_userName', userName);
+            
+            // Notify App component about session state change
+            if (onSessionUpdate) {
+              onSessionUpdate(true, data.session_id, true); // true for isHost since this is session creation
+            }
             break;
             
           case 'session_joined':
@@ -437,6 +543,11 @@ const VirtualPainter = () => {
             localStorage.setItem('drawwave_roomId', data.room_id);
             localStorage.setItem('drawwave_inSession', 'true');
             localStorage.setItem('drawwave_userName', userName);
+            
+            // Notify App component about session state change
+            if (onSessionUpdate) {
+              onSessionUpdate(true, data.session_id, false); // false for isHost since this is joining
+            }
             
             // Apply canvas and drawing data if available
             if (data.canvas) {
@@ -1017,30 +1128,7 @@ const VirtualPainter = () => {
   // Show session setup UI instead of canvas if not in a session
   const renderSessionControls = () => {
     if (inSession) {
-      return (
-        <div className="session-info bg-indigo-50 p-3 sm:p-4 rounded-md mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 max-w-7xl mx-auto">
-          <div className="text-black flex flex-wrap gap-2 items-center">
-            <span className="font-medium text-black">Session ID:</span> <span className="bg-white px-2 py-1 rounded text-black">{sessionId}</span>
-            <span className="font-medium text-black ml-0 sm:ml-4">Participants:</span> <span className="bg-white px-2 py-1 rounded text-black">{participants}</span>
-            <button 
-              onClick={() => {
-                // Clear session data
-                clearSessionFromLocalStorage();
-                setInSession(false);
-                setSessionId('');
-                setRoomId('');
-                window.location.reload(); // Force a refresh to ensure clean state
-              }}
-              className="ml-0 sm:ml-4 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
-            >
-              Leave Room
-            </button>
-          </div>
-          <div className="text-sm text-black">
-            Share this ID with others to let them join your drawing session
-          </div>
-        </div>
-      );
+      return null; // No session info displayed when in a session
     }
     
     return (
@@ -1150,7 +1238,7 @@ const VirtualPainter = () => {
         </div>
       )}
       
-      {!reconnecting && reconnectStatus && (
+      {!reconnecting && reconnectStatus && reconnectStatus.length > 0 && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-3 sm:px-4 py-2 sm:py-3 rounded mb-4 text-sm sm:text-base max-w-7xl mx-auto">
           {reconnectStatus}
         </div>
@@ -1171,34 +1259,7 @@ const VirtualPainter = () => {
       {/* Only show main content when in a session */}
       {inSession && (
         <div>
-          {/* Session Information Panel */}
-          <div className="bg-indigo-50 p-3 sm:p-4 rounded-md mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 max-w-7xl mx-auto">
-            <div className="flex flex-wrap gap-2 items-center">
-              <div className="flex items-center">
-                <span className="font-medium text-black">Session ID:</span>
-                <span className="bg-white px-2 py-1 rounded ml-2 text-black">{sessionId}</span>
-              </div>
-              
-              <div className="flex items-center ml-0 sm:ml-4">
-                <span className="font-medium text-black">Room ID:</span>
-                <span className="bg-white px-2 py-1 rounded ml-2 text-black">{roomId}</span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(roomId);
-                    setError('Room ID copied to clipboard!');
-                    setTimeout(() => setError(null), 2000);
-                  }}
-                  className="ml-2 bg-indigo-600 hover:bg-indigo-700 text-white p-1 rounded text-xs"
-                  title="Copy Room ID"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-            <div className="text-sm">
-              <span className="bg-green-100 px-2 py-1 rounded text-green-800">{participants} participant{participants !== 1 ? 's' : ''}</span>
-            </div>
-          </div>
+          {/* Session content starts directly without the information panel */}
           <div className={`flex flex-col ${isFullscreen ? '' : 'xl:flex-row'} gap-4 justify-center items-center w-full max-w-7xl mx-auto`}>
             <div className={`relative rounded-lg overflow-hidden shadow-lg bg-white w-full max-w-full md:max-w-2xl xl:max-w-3xl ${isFullscreen ? 'hidden' : ''}`}>
               <video 

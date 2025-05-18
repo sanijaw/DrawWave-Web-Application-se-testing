@@ -338,70 +338,55 @@ class WebSocketServer:
                         # No need to check again as the main check at the start of message processing covers this
 
                         try:
-                            # Decode base64 image
-                            img_data = base64.b64decode(frame_data.split(',')[1])
-
-                            # Check if decoded data is empty
-                            if len(img_data) == 0:
-                                print("Error: Empty image data")
+                            # Extract base64 data
+                            base64_data = frame_data.replace("data:image/jpeg;base64,", "")
+                            
+                            try:
+                                # Decode base64 image
+                                image_data = base64.b64decode(base64_data)
+                                nparr = np.frombuffer(image_data, np.uint8)
+                                frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                                
+                                # Skip processing if frame is invalid
+                                if frame is None or frame.size == 0:
+                                    continue
+                                
+                                # Process the frame with hand tracking
+                                frame, landmarks, gesture = self.hand_tracker.process_frame(frame)
+                                
+                                if landmarks:
+                                    # Get the Canvas instance from the session
+                                    canvas = self.sessions[session_id]["canvas"]
+                                    
+                                    # Apply the gesture to the canvas and get points
+                                    with self.sessions[session_id]["lock"]:
+                                        self.handle_gesture(canvas, gesture, landmarks, websocket, session_id)
+                                    
+                                    # Send the updated canvas to all clients in the session
+                                    if gesture in ["drawing", "erase"]:
+                                        canvas_state = canvas.get_canvas()
+                                        
+                                        # Convert the canvas to base64
+                                        _, buffer = cv2.imencode('.png', canvas_state)
+                                        img_base64 = base64.b64encode(buffer).decode('utf-8')
+                                        
+                                        # Send the updated canvas to all clients
+                                        canvas_update = json.dumps({
+                                            "type": "canvas_update",
+                                            "canvas": f"data:image/png;base64,{img_base64}"
+                                        })
+                                        await self.broadcast_to_session(session_id, canvas_update)
+                            except Exception as e:
+                                print(f"Error processing frame: {e}")
                                 await websocket.send(json.dumps({
                                     "type": "error",
-                                    "message": "Empty image data"
+                                    "message": f"Error processing frame: {str(e)}"
                                 }))
-                                continue
-
-                            nparr = np.frombuffer(img_data, np.uint8)
-                            # Check if array is empty
-                            if nparr.size == 0:
-                                print("Error: Empty image array")
-                                await websocket.send(json.dumps({
-                                    "type": "error",
-                                    "message": "Empty image array"
-                                }))
-                                continue
-
-                            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-                            # Check if imdecode failed
-                            if frame is None:
-                                print("Error: Failed to decode image")
-                                await websocket.send(json.dumps({
-                                    "type": "error",
-                                    "message": "Failed to decode image"
-                                }))
-                                continue
-
-                            # Process frame with hand tracking
-                            session = self.sessions[session_id]
-                            with session["lock"]:
-                                processed_frame, result = self.hand_tracker.detect_hands(frame)
-
-                                # Process hand gestures if landmarks detected
-                                if result.multi_hand_landmarks:
-                                    landmarks = result.multi_hand_landmarks[0]
-                                    gesture = self.hand_tracker.recognize_gesture(landmarks)
-                                    self.handle_gesture(session["canvas"], gesture, landmarks)
-
-                                # Get current canvas state
-                                canvas_image = session["canvas"].get_canvas()
-
-                                # Convert canvas to base64 for sending to frontend
-                                _, buffer = cv2.imencode('.png', canvas_image)
-                                canvas_base64 = base64.b64encode(buffer).decode('utf-8')
-
-                                # Broadcast to all clients in session
-                                update_message = json.dumps({
-                                    "type": "canvas_update",
-                                    "canvas": f"data:image/png;base64,{canvas_base64}"
-                                })
-
-                                # Send update to all clients in the session
-                                await self.broadcast_to_session(session_id, update_message)
                         except Exception as e:
-                            print(f"Error decoding image: {e}")
+                            print(f"Error in frame handling: {e}")
                             await websocket.send(json.dumps({
                                 "type": "error",
-                                "message": f"Error decoding image: {str(e)}"
+                                "message": f"Error in frame handling: {str(e)}"
                             }))
                             continue
 
@@ -522,19 +507,72 @@ class WebSocketServer:
 
                 del self.client_sessions[websocket]
 
-    def handle_gesture(self, canvas, gesture, landmarks):
+    def handle_gesture(self, canvas, gesture, landmarks, websocket=None, session_id=None):
         index_tip = landmarks.landmark[8]
-
+        gesture_points = []
+        
+        # Track previous gesture to detect when drawing/erasing stops
+        session_data = self.sessions.get(session_id, {})
+        prev_gesture = session_data.get("prev_gesture", "idle")
+        
         if gesture == "drawing":
-            canvas.draw((index_tip.x, index_tip.y))
+            point = (index_tip.x, index_tip.y)
+            canvas.draw(point)
+            gesture_points.append({"x": point[0], "y": point[1]})
+            
+            # Send gesture point to client for history tracking if websocket is provided
+            if websocket and session_id:
+                asyncio.create_task(websocket.send(json.dumps({
+                    "type": "gesture_point",
+                    "gesture": "drawing",
+                    "point": {"x": point[0], "y": point[1]}
+                })))
+                
+            # Initialize drawing session if transitioning from idle
+            if prev_gesture != "drawing" and websocket and session_id:
+                # If we were previously erasing or idle, start a new drawing action
+                asyncio.create_task(websocket.send(json.dumps({
+                    "type": "gesture_start",
+                    "gesture": "drawing"
+                })))
 
         elif gesture == "erase":
             middle_tip = landmarks.landmark[12]
             midpoint = ((index_tip.x + middle_tip.x) / 2, (index_tip.y + middle_tip.y) / 2)
             canvas.erase(midpoint)
+            gesture_points.append({"x": midpoint[0], "y": midpoint[1]})
+            
+            # Send erase point to client
+            if websocket and session_id:
+                asyncio.create_task(websocket.send(json.dumps({
+                    "type": "gesture_point",
+                    "gesture": "erase",
+                    "point": {"x": midpoint[0], "y": midpoint[1]}
+                })))
+                
+            # Initialize erasing session if transitioning from idle
+            if prev_gesture != "erase" and websocket and session_id:
+                # If we were previously drawing or idle, start a new erase action
+                asyncio.create_task(websocket.send(json.dumps({
+                    "type": "gesture_start",
+                    "gesture": "erase"
+                })))
 
         elif gesture == "idle":
+            # When returning to idle after drawing/erasing, send a completion signal
+            if prev_gesture in ["drawing", "erase"] and websocket and session_id:
+                print(f"Completing gesture: {prev_gesture} -> idle")
+                asyncio.create_task(websocket.send(json.dumps({
+                    "type": "gesture_complete",
+                    "previous": prev_gesture
+                })))
             canvas.reset_previous_points()
+        
+        # Update the previous gesture
+        if session_id in self.sessions:
+            self.sessions[session_id]["prev_gesture"] = gesture
+            
+        return gesture_points
 
     async def start_server(self):
         # Restore sessions from MongoDB before starting the server
