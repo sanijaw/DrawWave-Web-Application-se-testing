@@ -3,6 +3,7 @@ import VirtualPainter from './components/VirtualPainter';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
 import Preloader from './components/Preloader';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
   const [inSession, setInSession] = useState(false);
@@ -60,7 +61,8 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen w-full dark-premium-bg p-0 overflow-x-hidden">
+    <ThemeProvider>
+      <div className="min-h-screen w-full p-0 overflow-x-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Preloader */}
       {isLoading && <Preloader onFinished={handlePreloaderFinished} />}
       
@@ -87,7 +89,8 @@ function App() {
           </>
         )}
       </div>
-    </div>
+      </div>
+    </ThemeProvider>
   );
 }
 

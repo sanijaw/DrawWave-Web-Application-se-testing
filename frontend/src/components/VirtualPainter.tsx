@@ -1132,38 +1132,42 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
     }
     
     return (
-      <div className="session-setup bg-white p-4 rounded-lg shadow-md mx-auto my-4 flex flex-col w-full max-w-4xl">
-        <div className="flex flex-col md:flex-row justify-between w-full gap-4">
+      <div className="session-setup p-10 rounded-xl mx-auto my-10 flex flex-col w-full max-w-5xl animate-fadeIn transition-all duration-300" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--accent-primary)', borderWidth: '1px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}>
+        <div className="flex flex-col md:flex-row justify-between w-full gap-10 transform transition-all duration-500">
           {/* Create Room Section */}
-          <div className="flex-1 flex flex-col items-center">
-            <h2 className="text-xl font-bold mb-4 text-indigo-700">Create Room</h2>
+          <div className="flex-1 flex flex-col items-center p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
+            <div className="bg-gradient-to-r from-[#a855f7] to-[#8b5cf6] text-transparent bg-clip-text w-full mb-6">
+              <h2 className="text-xl font-bold text-center">Create Room</h2>
+            </div>
             
             <input
               type="text"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full mb-4 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-base bg-gray-50"
+              className="w-full mb-6 rounded-md px-4 py-3 text-base transition-all duration-300 theme-input"
             />
             
-            <div className="w-full mb-4 flex">
+            <div className="w-full mb-6 flex relative group">
               <input
                 type="text"
                 value={createRoomInput}
                 onChange={(e) => setCreateRoomInput(e.target.value)}
                 placeholder="Room ID"
-                className="flex-1 border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-base bg-gray-50"
+                className="flex-1 rounded-l-md px-4 py-3 text-base transition-all duration-300 theme-input"
                 readOnly
               />
               <button
+                type="button"
                 onClick={generateRoomId}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 text-sm"
+                className="font-medium py-3 px-4 min-w-[90px] text-sm rounded-r-md theme-gradient"
               >
                 Generate
               </button>
               <button
+                type="button"
                 onClick={copyRoomId}
-                className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-r-md text-sm"
+                className="bg-gradient-to-r from-[#f43f5e] to-[#f87171] hover:from-[#fb7185] hover:to-[#fca5a5] text-white font-medium py-3 px-4 min-w-[90px] rounded-r-md text-sm transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
                 disabled={!createRoomInput.trim()}
               >
                 Copy
@@ -1171,50 +1175,64 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
             </div>
             
             <button 
+              type="button"
               onClick={handleCreateSession}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md text-base"
+              className="w-full relative overflow-hidden theme-gradient font-medium py-3 px-4 rounded-md text-base shadow-lg group"
               disabled={!connected || !userName.trim() || !createRoomInput.trim()}
             >
-              Create Room
+              <span className="relative z-10">Create Room</span>
+              <span className="absolute inset-0 rounded-md overflow-hidden">
+                <span className="absolute -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-40 group-hover:animate-shine"></span>
+              </span>
             </button>
-            {!userName.trim() && <p className="text-xs text-gray-500 mt-2 text-center">Please enter your name</p>}
-            {!createRoomInput.trim() && <p className="text-xs text-gray-500 mt-2 text-center">Please generate a room code</p>}
+            {!userName.trim() && <p className="text-xs text-[#a855f7]/70 mt-2 text-center">Please enter your name</p>}
+            {!createRoomInput.trim() && <p className="text-xs text-[#a855f7]/70 mt-2 text-center">Please generate a room code</p>}
           </div>
           
           {/* OR Divider */}
-          <div className="flex items-center justify-center">
-            <span className="text-lg font-medium text-gray-500 px-4">OR</span>
+          <div className="flex items-center justify-center relative">
+            <div className="w-px h-32 bg-gradient-to-b from-transparent via-[#a855f7]/30 to-transparent absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:block"></div>
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-[#a855f7]/30 to-transparent my-4 md:hidden"></div>
+            <span className="text-lg font-medium bg-gradient-to-r from-[#a855f7] to-[#8b5cf6] text-transparent bg-clip-text px-4 relative z-10 md:rotate-0 md:transform">OR</span>
           </div>
           
           {/* Join Room Section */}
-          <div className="flex-1 flex flex-col items-center">
-            <h2 className="text-xl font-bold mb-4 text-indigo-700">Join Room</h2>
+          <div className="flex-1 flex flex-col items-center p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn animation-delay-300" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
+            <div className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-transparent bg-clip-text w-full mb-6">
+              <h2 className="text-xl font-bold text-center">Join Room</h2>
+            </div>
             
             <input
               type="text"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full mb-4 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-base bg-gray-50"
+              className="w-full mb-6 rounded-md px-4 py-3 text-base transition-all duration-300 theme-input"
             />
             
-            <input
-              type="text"
-              placeholder="Enter Session ID"
-              value={joinSessionInput}
-              onChange={(e) => setJoinSessionInput(e.target.value)}
-              className="w-full mb-4 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-base bg-gray-50"
-            />
+            <div className="w-full mb-6 relative group">
+              <input
+                type="text"
+                placeholder="Enter Session ID"
+                value={joinSessionInput}
+                onChange={(e) => setJoinSessionInput(e.target.value)}
+                className="w-full rounded-md px-4 py-3 text-base transition-all duration-300 theme-input"
+              />
+            </div>
             
             <button
+              type="button"
               onClick={handleJoinSession}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md text-base"
+              className="w-full relative overflow-hidden theme-gradient font-medium py-3 px-4 rounded-md text-base shadow-lg group"
               disabled={!connected || !userName.trim() || !joinSessionInput.trim()}
             >
-              Join Room
+              <span className="relative z-10">Join Room</span>
+              <span className="absolute inset-0 rounded-md overflow-hidden">
+                <span className="absolute -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-40 group-hover:animate-shine"></span>
+              </span>
             </button>
-            {!userName.trim() && <p className="text-xs text-gray-500 mt-2 text-center">Please enter your name</p>}
-            {!joinSessionInput.trim() && <p className="text-xs text-gray-500 mt-2 text-center">Please enter a session ID</p>}
+            {!userName.trim() && <p className="text-xs text-[#a855f7]/70 mt-2 text-center">Please enter your name</p>}
+            {!joinSessionInput.trim() && <p className="text-xs text-[#a855f7]/70 mt-2 text-center">Please enter a session ID</p>}
           </div>
         </div>
       </div>

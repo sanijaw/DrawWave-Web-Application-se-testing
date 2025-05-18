@@ -7,7 +7,6 @@ interface HomeProps {
 const Home = ({ onStartRoom }: HomeProps) => {
   const [animate, setAnimate] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const logoRef = useRef<HTMLDivElement>(null);
   
   // Animation frames reference
   const animationFrameRef = useRef<number | null>(null);
@@ -15,28 +14,6 @@ const Home = ({ onStartRoom }: HomeProps) => {
   useEffect(() => {
     // Start animations after component mounts
     setAnimate(true);
-    
-    // Setup 3D floating logo animation
-    const handleMouseMove = (e: MouseEvent) => {
-      if (logoRef.current) {
-        const logo = logoRef.current;
-        const rect = logo.getBoundingClientRect();
-        const logoX = rect.left + rect.width / 2;
-        const logoY = rect.top + rect.height / 2;
-        
-        // Calculate distance from mouse to center of logo
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-        
-        // Calculate rotation based on mouse position
-        // The effect is subtle to maintain quality appearance
-        const rotateX = (mouseY - logoY) * 0.01;
-        const rotateY = (mouseX - logoX) * -0.01;
-        
-        // Apply the 3D rotation
-        logo.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-      }
-    };
     
     // Setup matrix rain effect
     const setupMatrixEffect = () => {
@@ -98,7 +75,6 @@ const Home = ({ onStartRoom }: HomeProps) => {
     
     // Initialize animations
     setupMatrixEffect();
-    window.addEventListener('mousemove', handleMouseMove);
     
     // Handle window resize for canvas
     const handleResize = () => {
@@ -115,7 +91,6 @@ const Home = ({ onStartRoom }: HomeProps) => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -176,20 +151,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
       
       {/* Content Container */}
       <div className={`z-40 flex flex-col items-center justify-center text-center max-w-3xl px-6 transform ${animate ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'} transition-all duration-1000 ease-out`}>
-        {/* 3D Logo/Badge */}
-        <div 
-          ref={logoRef}
-          className={`relative mb-8 transition-all duration-300 transform-gpu ${animate ? 'opacity-100' : 'opacity-0'} hover:scale-105`}
-          style={{ transition: 'transform 0.3s ease' }}
-        >
-          <div className="w-20 h-20 relative rounded-md bg-black border-2 border-[#a855f7]/60 flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#a855f7]/10 via-[#8b5cf6]/10 to-transparent"></div>
-            <div className="text-[#a855f7] text-2xl font-bold z-10">DW</div>
-            {/* 3D effect elements */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#a855f7]/5 to-[#8b5cf6]/5 transform rotate-45 scale-150 animate-spin-slow"></div>
-            <div className="absolute -bottom-8 -right-8 w-16 h-16 bg-[#a855f7]/10 rounded-full blur-xl"></div>
-          </div>
-        </div>
+
         
         {/* Main title with 3D effect */}
         <div className={`relative ${animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} transition-all duration-1000 ease-out animation-delay-300`}>
@@ -200,8 +162,6 @@ const Home = ({ onStartRoom }: HomeProps) => {
               <span className="absolute -left-0.5 -top-0.5 text-[#8b5cf6]/20 blur-sm">DrawWave</span>
             </span> 
             <span className="bg-gradient-to-r from-[#a855f7] to-[#c084fc] text-transparent bg-clip-text relative inline-block">
-              <span className="relative z-10">AI</span>
-              <span className="absolute -left-1 -top-1 text-[#a855f7]/30 blur-sm">AI</span>
             </span>
           </h1>
         </div>

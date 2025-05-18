@@ -50,23 +50,11 @@ const Preloader = ({ onFinished }: PreloaderProps) => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vh] h-[40vh] rounded-full bg-gradient-to-r from-[#8b5cf6]/15 to-[#6366f1]/15 blur-3xl animate-pulse-slow animation-delay-300"></div>
       </div>
       
-      {/* Logo container */}
-      <div className="relative z-10 mb-12 perspective-1000">
-        <div className="w-24 h-24 relative rounded-md bg-black border-2 border-[#a855f7]/60 flex items-center justify-center overflow-hidden animate-float">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#a855f7]/10 via-[#8b5cf6]/10 to-transparent"></div>
-          <div className="text-[#a855f7] text-3xl font-bold z-10">DW</div>
-          
-          {/* Rotating element around logo */}
-          <div className="absolute w-full h-full">
-            <div className="absolute w-full h-0.5 top-1/2 left-0 -translate-y-1/2 bg-gradient-to-r from-transparent via-[#a855f7]/40 to-transparent animate-spin-slow"></div>
-            <div className="absolute h-full w-0.5 top-0 left-1/2 -translate-x-1/2 bg-gradient-to-b from-transparent via-[#a855f7]/40 to-transparent animate-spin-slow" style={{ animationDelay: '0.5s' }}></div>
-          </div>
-        </div>
-      </div>
+
       
       {/* Loading text with typewriter effect */}
-      <div className="relative z-10 text-center mb-8">
-        <h2 className="text-[#a855f7] text-xl font-medium mb-1">DrawWave AI</h2>
+      <div className="relative z-10 text-center mb-10 mt-4">
+        <h2 className="text-[#a855f7] text-2xl font-bold mb-2">DrawWave</h2>
         <p className="text-white/80 text-sm">Loading creative workspace...</p>
       </div>
       

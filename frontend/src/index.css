@@ -2,6 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme variables */
+/* Apply transition to all elements for smooth theme changes */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+:root {
+  /* Default to dark theme */
+  --bg-primary: #0f0721;
+  --bg-secondary: #1a002a;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --accent-primary: #a855f7;
+  --accent-secondary: #8b5cf6;
+  --nav-bg-start: #4f46e5;
+  --nav-bg-end: #9333ea;
+  
+  /* RGB values for opacity adjustments */
+  --accent-primary-rgb: 168, 85, 247;
+  --accent-secondary-rgb: 139, 92, 246;
+  --text-primary-rgb: 255, 255, 255;
+  --bg-primary-rgb: 15, 7, 33;
+  --bg-secondary-rgb: 26, 0, 42;
+}
+
+/* Light theme overrides */
+.light-theme {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #a855f7;
+  --nav-bg-start: #a78bfa;
+  --nav-bg-end: #c084fc;
+  
+  /* RGB values for opacity adjustments */
+  --accent-primary-rgb: 139, 92, 246;
+  --accent-secondary-rgb: 168, 85, 247;
+  --text-primary-rgb: 17, 24, 39;
+  --bg-primary-rgb: 255, 255, 255;
+  --bg-secondary-rgb: 243, 244, 246;
+}
+
 /* Force fullscreen */
 html, body, #root {
   height: 100%;
@@ -9,8 +53,9 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  background-color: #0a0a10;
-  color: #f5f5f7;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Animation delay utilities */
@@ -24,6 +69,65 @@ html, body, #root {
 
 .animation-delay-900 {
   animation-delay: 0.9s;
+}
+
+/* Theme-aware form inputs */
+input, textarea, select, .theme-input {
+  background-color: rgba(var(--bg-primary-rgb), 0.8) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.3) !important;
+}
+
+input:focus, textarea:focus, select:focus, .theme-input:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.2) !important;
+  outline: none !important;
+}
+
+.theme-input {
+  color: var(--text-primary) !important;
+  background: rgba(var(--bg-secondary-rgb), 0.6) !important;
+}
+
+.theme-input::placeholder {
+  color: rgba(var(--text-primary-rgb), 0.5) !important;
+}
+
+/* Theme-aware buttons */
+.theme-button {
+  background: linear-gradient(to right, var(--accent-secondary), var(--accent-primary));
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.theme-button:hover {
+  background: linear-gradient(to right, var(--accent-secondary), var(--accent-primary));
+  filter: brightness(1.2);
+  transform: translateY(-2px);
+}
+
+.theme-button:active {
+  transform: translateY(0);
+}
+
+/* Theme button properties */
+.theme-gradient {
+  background: linear-gradient(to right, var(--accent-secondary), var(--accent-primary));
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.theme-gradient:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.theme-gradient:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.theme-gradient:disabled {
+  opacity: 0.5;
 }
 
 /* Premium dark theme styles */
