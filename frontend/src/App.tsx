@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import VirtualPainter from './components/VirtualPainter';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
 import Preloader from './components/Preloader';
+import AuthCallback from './components/AuthCallback';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
   const [inSession, setInSession] = useState(false);
@@ -64,40 +67,51 @@ function App() {
   };
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen w-full p-0 overflow-x-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      {/* Preloader */}
-      {isLoading && <Preloader onFinished={handlePreloaderFinished} />}
-      
-      {/* Main App Content (rendered but initially hidden by preloader) */}
-      <div className={`min-h-screen w-full transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-        {!showHome && (
-          <Navbar 
-            inSession={inSession}
-            sessionId={sessionId}
-            onLeaveRoom={handleLeaveRoom}
-            onDownloadCanvas={downloadCanvasRef.current || undefined}
-          />
-        )}
-        
-        {showHome ? (
-          <Home onStartRoom={handleStartRoom} />
-        ) : (
-          <>
-            <div className="pt-4 sm:pt-6 animate-fadeIn">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text py-4 sm:py-6 animate-shimmer-slow drop-shadow-glow-indigo">
-              </h1>
-              <div className="w-48 h-1 mx-auto bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full animate-gradient-x"></div>
+    <AuthProvider>
+      <ThemeProvider>
+        <Router>
+          <div className="min-h-screen w-full p-0 overflow-x-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
+            {/* Preloader */}
+            {isLoading && <Preloader onFinished={handlePreloaderFinished} />}
+            
+            {/* Main App Content (rendered but initially hidden by preloader) */}
+            <div className={`min-h-screen w-full transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+              {/* Special route for auth callback */}
+              <Routes>
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="*" element={null} /> {/* Catch-all route that renders nothing, letting the conditional content below handle rendering */}
+              </Routes>
+
+              {/* Regular app flow with conditional rendering, just like before */}
+              {!showHome && (
+                <Navbar 
+                  inSession={inSession}
+                  sessionId={sessionId}
+                  onLeaveRoom={handleLeaveRoom}
+                  onDownloadCanvas={downloadCanvasRef.current || undefined}
+                />
+              )}
+              
+              {showHome ? (
+                <Home onStartRoom={handleStartRoom} />
+              ) : (
+                <>
+                  <div className="pt-4 sm:pt-6 animate-fadeIn">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text py-4 sm:py-6 animate-shimmer-slow drop-shadow-glow-indigo">
+                    </h1>
+                    <div className="w-48 h-1 mx-auto bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full animate-gradient-x"></div>
+                  </div>
+                  <VirtualPainter 
+                    onSessionUpdate={handleSessionUpdate} 
+                    downloadRef={downloadCanvasRef}
+                  />
+                </>
+              )}
             </div>
-            <VirtualPainter 
-              onSessionUpdate={handleSessionUpdate} 
-              downloadRef={downloadCanvasRef}
-            />
-          </>
-        )}
-      </div>
-      </div>
-    </ThemeProvider>
+          </div>
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

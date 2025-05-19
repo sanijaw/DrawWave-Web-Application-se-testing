@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dropdown Menu Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-10px); }
+  to { transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.2s ease-out forwards;
+}
+
 /* Theme variables */
 /* Apply transition to all elements for smooth theme changes */
 * {
