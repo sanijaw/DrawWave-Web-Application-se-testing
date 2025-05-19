@@ -12,8 +12,8 @@ const Home = ({ onStartRoom }: HomeProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const demoSectionRef = useRef<HTMLDivElement>(null);
   
-  // Get auth context to check user authentication status
-  const { isAuthenticated, login } = useAuth();
+  // Get auth context to check user authentication status and user information
+  const { user, isAuthenticated, login } = useAuth();
   
   // Animation frames reference
   const animationFrameRef = useRef<number | null>(null);
@@ -199,9 +199,23 @@ const Home = ({ onStartRoom }: HomeProps) => {
             </span>
           </h1>
         </div>
-        <p className="text-[#a855f7]/80 text-xl sm:text-2xl mb-10 opacity-100 transition-all duration-1000 ease-out animation-delay-400 transform-gpu hover:scale-105 transition-transform">Introducing Collaborative Drawing</p>
+        <p className="text-[#a855f7]/80 text-xl sm:text-2xl mb-6 opacity-100 transition-all duration-1000 ease-out animation-delay-400 transform-gpu hover:scale-105 transition-transform">Introducing Collaborative Drawing</p>
         
-        <div className="flex flex-col sm:flex-row gap-6 mt-10 mb-16 opacity-100 translate-y-0 transition-all duration-1000 ease-out animation-delay-500 w-full max-w-xl mx-auto">
+        {/* User Info Display - Show when authenticated */}
+        {isAuthenticated && user && (
+          <div className="mb-8 opacity-100 transition-all duration-700 ease-out animation-delay-450 transform-gpu">
+            <div className="flex items-center justify-center gap-3 bg-[#1a002a]/60 backdrop-blur-md px-5 py-3 rounded-lg border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300">
+              <img 
+                src={user.picture} 
+                alt="Profile" 
+                className="w-8 h-8 rounded-full border-2 border-purple-500/50"
+              />
+              <div className="text-white text-sm font-medium">Signed in as <span className="text-purple-300">{user.name}</span></div>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex flex-col sm:flex-row gap-6 mt-6 mb-12 opacity-100 translate-y-0 transition-all duration-1000 ease-out animation-delay-500 w-full max-w-xl mx-auto">
           <button 
             onClick={() => {
               if (isAuthenticated) {
@@ -237,6 +251,8 @@ const Home = ({ onStartRoom }: HomeProps) => {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-[#a855f7]/20 to-[#8b5cf6]/20 rounded-md blur opacity-0 group-hover:opacity-30 transition duration-300"></div>
           </button>
         </div>
+        
+
         
         {/* Bottom icons row with hover effects */}
         <div className={`flex gap-12 mt-2 ${animate ? 'opacity-100' : 'opacity-0'} transition-all duration-1000 ease-out animation-delay-700`}>
