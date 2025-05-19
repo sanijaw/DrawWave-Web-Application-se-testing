@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import styles from '../styles/Navbar.module.css';
+import LoginButton from './LoginButton';
 
 interface NavbarProps {
   inSession: boolean;
@@ -29,6 +30,10 @@ const Navbar = ({ inSession, sessionId, onLeaveRoom, onDownloadCanvas }: NavbarP
 
         {/* All controls grouped on the right corner */}
         <div className="flex items-center space-x-2">
+          {/* Login button */}
+          <div className="mr-2">
+            <LoginButton />
+          </div>
           {/* Session ID display - only visible when in session */}
           {inSession && sessionId && (
             <div className="hidden md:flex items-center bg-indigo-900 rounded-md px-2 py-1.5 mr-2">

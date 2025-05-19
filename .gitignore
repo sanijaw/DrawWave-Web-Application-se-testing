@@ -143,15 +143,6 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# OAuth and sensitive credentials
-backend/google auth det.txt
-*.pem
-*.key
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
 # mkdocs documentation
 /site
 
