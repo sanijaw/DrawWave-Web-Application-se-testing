@@ -46,7 +46,7 @@ const Navbar = ({ inSession, sessionId, onLeaveRoom }: NavbarProps) => {
           <div className="flex items-center gap-2">
             {/* Session ID display and copy button */}
             {sessionId && (
-              <div className="flex items-center bg-indigo-800 rounded-md px-2 py-1">
+              <div className="flex items-center bg-indigo-800 rounded-md px-3 py-2">
                 <div className="flex flex-col mr-2">
                   <span className="text-white text-xs font-medium">Session ID:</span>
                   <span className="text-indigo-200 text-sm font-semibold">{sessionId}</span>
@@ -56,10 +56,10 @@ const Navbar = ({ inSession, sessionId, onLeaveRoom }: NavbarProps) => {
                     navigator.clipboard.writeText(sessionId);
                     alert('Session ID copied to clipboard!');
                   }}
-                  className="h-6 w-6 bg-indigo-700 hover:bg-indigo-600 rounded-full flex items-center justify-center" 
+                  className="h-7 w-7 px-7 py-5 bg-indigo-700 hover:bg-indigo-600 rounded-1xl flex items-center justify-center" 
                   title="Copy Session ID"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 50 50" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                   </svg>
                   Copy
@@ -70,9 +70,9 @@ const Navbar = ({ inSession, sessionId, onLeaveRoom }: NavbarProps) => {
             {/* Leave Room button */}
             <button
               onClick={() => onLeaveRoom()}
-              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md shadow-sm transition-colors duration-200 text-sm font-medium flex items-center"
+              className="bg-red-500 hover:bg-red-600 text-white px-5 py-4 rounded-md shadow-sm transition-colors duration-200 text-sm font-medium flex items-center"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
               Leave Room

@@ -28,9 +28,9 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
   const [sessionId, setSessionId] = useState(() => {
     return localStorage.getItem('drawwave_sessionId') || '';
   }); // Current session ID when connected
-  const [roomId, setRoomId] = useState(() => {
+  const [_roomId, setRoomId] = useState(() => {
     return localStorage.getItem('drawwave_roomId') || '';
-  }); // Room ID associated with the session
+  }); // Room ID associated with the session - using underscore prefix to indicate intentionally unused state
   
   // Connection status for user feedback
   const [reconnecting, setReconnecting] = useState<boolean>(false);
@@ -42,7 +42,7 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
 
   const [createRoomInput, setCreateRoomInput] = useState<string>('');
   const [joinSessionInput, setJoinSessionInput] = useState<string>('');
-  const [participants, setParticipants] = useState<number>(0);
+  const [_participants, setParticipants] = useState<number>(0); // Using underscore prefix to indicate intentionally unused state
   const [inSession, setInSession] = useState<boolean>(() => {
     return localStorage.getItem('drawwave_inSession') === 'true';
   });
@@ -1132,10 +1132,10 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
     }
     
     return (
-      <div className="session-setup p-10 rounded-xl mx-auto my-10 flex flex-col w-full max-w-5xl animate-fadeIn transition-all duration-300" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--accent-primary)', borderWidth: '1px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}>
-        <div className="flex flex-col md:flex-row justify-center w-full gap-8 md:gap-12 transform transition-all duration-500 md:px-6">
+      <div className="session-setup p-6 sm:p-10 rounded-xl mx-auto my-10 flex flex-col w-full max-w-6xl animate-fadeIn transition-all duration-300" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--accent-primary)', borderWidth: '1px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}>
+        <div className="flex flex-col lg:flex-row justify-center w-full gap-10 md:gap-16 transform transition-all duration-500 md:px-4">
           {/* Create Room Section */}
-          <div className="flex-1 flex flex-col items-center p-6 sm:p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn md:w-[380px] min-h-[400px] overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
+          <div className="flex-1 flex flex-col items-center p-6 sm:p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn md:w-[450px] min-h-[400px] overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
             <div className="bg-gradient-to-r from-[#a855f7] to-[#8b5cf6] text-transparent bg-clip-text w-full mb-6">
               <h2 className="text-xl font-bold text-center">Create Room</h2>
             </div>
@@ -1199,7 +1199,7 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
           </div>
           
           {/* Join Room Section */}
-          <div className="flex-1 flex flex-col items-center p-6 sm:p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn animation-delay-300 md:w-[380px] min-h-[400px] overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
+          <div className="flex-1 flex flex-col items-center p-6 sm:p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn animation-delay-300 md:w-[450px] min-h-[400px] overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
             <div className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-transparent bg-clip-text w-full mb-6">
               <h2 className="text-xl font-bold text-center">Join Room</h2>
             </div>

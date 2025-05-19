@@ -20,7 +20,7 @@ export const useTheme = () => {
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<ThemeType>(() => {
     const savedTheme = localStorage.getItem('drawwave-theme');
-    return (savedTheme as ThemeType) || 'dark';
+    return (savedTheme as ThemeType) || 'light';
   });
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('drawwave-theme', theme);
     
     // Apply theme class to body
-    if (theme === 'light') {
+    if (theme === 'dark') {
       document.body.classList.add('light-theme');
       document.body.classList.remove('dark-theme');
     } else {
