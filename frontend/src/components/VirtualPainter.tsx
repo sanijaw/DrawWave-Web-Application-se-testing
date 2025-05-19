@@ -1133,9 +1133,9 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
     
     return (
       <div className="session-setup p-10 rounded-xl mx-auto my-10 flex flex-col w-full max-w-5xl animate-fadeIn transition-all duration-300" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--accent-primary)', borderWidth: '1px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}>
-        <div className="flex flex-col md:flex-row justify-between w-full gap-10 transform transition-all duration-500">
+        <div className="flex flex-col md:flex-row justify-center w-full gap-8 md:gap-12 transform transition-all duration-500 md:px-6">
           {/* Create Room Section */}
-          <div className="flex-1 flex flex-col items-center p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
+          <div className="flex-1 flex flex-col items-center p-6 sm:p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn md:w-[380px] min-h-[400px] overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
             <div className="bg-gradient-to-r from-[#a855f7] to-[#8b5cf6] text-transparent bg-clip-text w-full mb-6">
               <h2 className="text-xl font-bold text-center">Create Room</h2>
             </div>
@@ -1148,29 +1148,31 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
               className="w-full mb-6 rounded-md px-4 py-3 text-base transition-all duration-300 theme-input"
             />
             
-            <div className="w-full mb-6 flex relative group">
+            <div className="w-full mb-6 grid grid-cols-12 gap-0 relative group">
               <input
                 type="text"
                 value={createRoomInput}
                 onChange={(e) => setCreateRoomInput(e.target.value)}
                 placeholder="Room ID"
-                className="flex-1 rounded-l-md px-4 py-3 text-base transition-all duration-300 theme-input"
+                className="col-span-6 rounded-l-md px-4 py-3 text-base transition-all duration-300 theme-input"
                 readOnly
               />
               <button
                 type="button"
                 onClick={generateRoomId}
-                className="font-medium py-3 px-4 min-w-[90px] text-sm rounded-r-md theme-gradient"
+                className="col-span-4 font-medium py-3 px-2 text-sm text-center theme-gradient rounded-none"
               >
                 Generate
               </button>
               <button
                 type="button"
                 onClick={copyRoomId}
-                className="bg-gradient-to-r from-[#f43f5e] to-[#f87171] hover:from-[#fb7185] hover:to-[#fca5a5] text-white font-medium py-3 px-4 min-w-[90px] rounded-r-md text-sm transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
+                className="col-span-2 bg-gradient-to-r from-[#f43f5e] to-[#f87171] hover:from-[#fb7185] hover:to-[#fca5a5] text-white font-medium py-3 px-0 text-sm rounded-none transition-all duration-300"
                 disabled={!createRoomInput.trim()}
               >
-                Copy
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
               </button>
             </div>
             
@@ -1197,7 +1199,7 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
           </div>
           
           {/* Join Room Section */}
-          <div className="flex-1 flex flex-col items-center p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn animation-delay-300" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
+          <div className="flex-1 flex flex-col items-center p-6 sm:p-8 rounded-lg shadow-lg transition-transform hover:scale-[1.02] duration-300 animate-fadeIn animation-delay-300 md:w-[380px] min-h-[400px] overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
             <div className="bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-transparent bg-clip-text w-full mb-6">
               <h2 className="text-xl font-bold text-center">Join Room</h2>
             </div>
@@ -1210,13 +1212,13 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
               className="w-full mb-6 rounded-md px-4 py-3 text-base transition-all duration-300 theme-input"
             />
             
-            <div className="w-full mb-6 relative group">
+            <div className="w-full mb-6 grid grid-cols-12 gap-0 relative group">
               <input
                 type="text"
                 placeholder="Enter Session ID"
                 value={joinSessionInput}
                 onChange={(e) => setJoinSessionInput(e.target.value)}
-                className="w-full rounded-md px-4 py-3 text-base transition-all duration-300 theme-input"
+                className="col-span-12 rounded-md px-4 py-3 text-base transition-all duration-300 theme-input"
               />
             </div>
             
