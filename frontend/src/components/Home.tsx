@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 
 interface HomeProps {
   onStartRoom: () => void;
@@ -7,11 +6,7 @@ interface HomeProps {
 
 const Home = ({ onStartRoom }: HomeProps) => {
   const [animate, setAnimate] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  // Get auth context to check user authentication status
-  const { isAuthenticated, login } = useAuth();
   
   // Animation frames reference
   const animationFrameRef = useRef<number | null>(null);
@@ -102,21 +97,6 @@ const Home = ({ onStartRoom }: HomeProps) => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full relative overflow-hidden bg-black">
-      {/* Authentication Modal */}
-      {showAuthModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-[#1a002a] border border-purple-500 rounded-lg shadow-lg p-6 max-w-md w-full transform transition-all animate-fadeIn">
-            <h3 className="text-xl font-bold text-white mb-4">Authentication Required</h3>
-            <p className="text-gray-300 mb-6">You need to sign in with Google before creating or joining a room.</p>
-            <div className="flex justify-center">
-              <div className="animate-pulse">
-                <div className="h-10 w-10 border-t-2 border-b-2 border-purple-500 rounded-full animate-spin"></div>
-              </div>
-            </div>
-            <p className="text-center text-gray-400 mt-4 text-sm">Redirecting to Google login...</p>
-          </div>
-        </div>
-      )}
       {/* Canvas for matrix rain effect */}
       <canvas 
         ref={canvasRef}
@@ -196,23 +176,11 @@ const Home = ({ onStartRoom }: HomeProps) => {
         {/* Button with 3D effect */}
         <div className={`mt-12 mb-24 perspective-500 ${animate ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} transition-all duration-1000 ease-out animation-delay-600`}>
           <button 
-            onClick={() => {
-              if (isAuthenticated) {
-                // User is authenticated, proceed to start room
-                onStartRoom();
-              } else {
-                // User is not authenticated, show login prompt
-                setShowAuthModal(true);
-                // After a delay, trigger the login
-                setTimeout(() => {
-                  login();
-                }, 2000);
-              }
-            }}
+            onClick={onStartRoom}
             className="group relative px-8 py-3 text-sm font-medium text-white bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] hover:from-[#9f67fc] hover:to-[#c084fc] rounded-md transition-transform duration-300 shadow-lg shadow-[#a855f7]/20 flex items-center justify-center w-40 transform hover:scale-105 hover:-translate-y-1 active:translate-y-0 active:scale-95"
             style={{ transformStyle: 'preserve-3d' }}
           >
-            <span className="relative z-10">{isAuthenticated ? 'Start Session' : 'Sign In to Start'}</span>
+            <span className="relative z-10">Start Session</span>
             {/* Button glow effect */}
             <span className="absolute inset-0 rounded-md overflow-hidden">
               <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
