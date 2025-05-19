@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReconnectionHandler from './ReconnectionHandler';
+import { useAuth } from '../contexts/AuthContext';
 
 // Interface for DrawAction to track drawing history
 interface DrawAction {
@@ -15,6 +16,17 @@ interface VirtualPainterProps {
 }
 
 const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) => {
+  // Get auth context to access user information
+  const { user, isAuthenticated } = useAuth();
+  
+  // Set username from auth context when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && user && user.name) {
+      setUserName(user.name);
+      // Store authenticated username in localStorage
+      localStorage.setItem('drawwave_userName', user.name);
+    }
+  }, [isAuthenticated, user]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -912,9 +924,12 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
   // Session management functions
   // Modified handleCreateSession
   const handleCreateSession = async () => {
-    // Validate that the user has entered a username
-    if (!userName.trim()) {
-      setError('Please enter your name');
+    // Use authenticated user's name if available, otherwise check manually entered name
+    const displayName = isAuthenticated && user ? user.name : userName;
+    
+    // Validate that a name exists
+    if (!displayName.trim()) {
+      setError('Please sign in with Google or enter your name');
       return;
     }
     
@@ -1010,8 +1025,11 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
       return;
     }
     
-    if (!userName.trim()) {
-      setError('Please enter your name');
+    // Use authenticated user's name if available, otherwise check manually entered name
+    const displayName = isAuthenticated && user ? user.name : userName;
+    
+    if (!displayName.trim()) {
+      setError('Please sign in with Google or enter your name');
       return;
     }
     
