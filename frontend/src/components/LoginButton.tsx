@@ -32,16 +32,24 @@ const LoginButton = () => {
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
-          <div className="relative overflow-hidden rounded-full">
-            {/* Animated border/glow effect */}
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 rounded-full p-0.5"
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-            />
+          {/* Single profile circle with animation */}
+          <div className="relative w-10 h-10 rounded-full overflow-hidden">
+            {/* Animated border/glow effect - using pure CSS animation */}
+            <div 
+              className="absolute inset-0 rounded-full animate-spin-slow"
+              style={{
+                background: 'linear-gradient(90deg, #22c55e, #16a34a, #3b82f6, #22c55e)',
+                padding: '2px'
+              }}
+            >
+              {/* Empty div with transparent background */}
+              <div className="w-full h-full rounded-full">
+                {/* No background, just the border effect */}
+              </div>
+            </div>
             
-            {/* Image container */}
-            <div className="relative w-10 h-10 p-0.5 rounded-full overflow-hidden bg-gray-800">
+            {/* Profile image - slightly smaller to show the border */}
+            <div className="absolute inset-[2px] rounded-full overflow-hidden">
               <img 
                 src={user.picture} 
                 alt={user.name} 
@@ -50,7 +58,7 @@ const LoginButton = () => {
               
               {/* Hover overlay effect */}
               <motion.div 
-                className="absolute inset-0 bg-gradient-to-b from-purple-500/40 to-indigo-600/60 opacity-0 group-hover:opacity-100 rounded-full"
+                className="absolute inset-0 bg-gradient-to-b from-purple-500/30 to-indigo-600/30 opacity-0 group-hover:opacity-100 rounded-full"
                 transition={{ duration: 0.2 }}
               />
             </div>

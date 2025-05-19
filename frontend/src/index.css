@@ -13,12 +13,22 @@
   to { transform: translateY(0); }
 }
 
+/* Profile Icon Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
 }
 
 .animate-slideIn {
   animation: slideIn 0.2s ease-out forwards;
+}
+
+.animate-spin-slow {
+  animation: spin 4s linear infinite;
 }
 
 /* Theme variables */
