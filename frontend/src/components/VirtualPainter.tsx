@@ -11,9 +11,10 @@ interface DrawAction {
 // Interface for VirtualPainter props
 interface VirtualPainterProps {
   onSessionUpdate?: (isInSession: boolean, currentSessionId: string, hostStatus: boolean) => void;
+  downloadRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
+const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -367,7 +368,7 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isMouseDrawing) return;
     
-    const canvas = canvasRef.current;
+    const canvas = drawingCanvasRef.current;
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
@@ -383,7 +384,7 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isMouseDrawing || !isDrawing) return;
     
-    const canvas = canvasRef.current;
+    const canvas = drawingCanvasRef.current;
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
@@ -1125,6 +1126,56 @@ const VirtualPainter = ({ onSessionUpdate }: VirtualPainterProps) => {
     setIsFullscreen(!isFullscreen);
   };
   
+  // Download canvas as PNG with all drawing layers
+  const handleDownloadCanvas = () => {
+    // Check if both canvases are available
+    if (canvasRef.current && drawingCanvasRef.current) {
+      // Create a temporary canvas to combine both layers
+      const tempCanvas = document.createElement('canvas');
+      const mainCanvas = canvasRef.current;
+      const drawingCanvas = drawingCanvasRef.current;
+      
+      // Set dimensions to match the original canvas
+      tempCanvas.width = mainCanvas.width;
+      tempCanvas.height = mainCanvas.height;
+      
+      // Get the context for our temporary canvas
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      if (tempCtx) {
+        // First draw the main canvas (background)
+        tempCtx.drawImage(mainCanvas, 0, 0);
+        
+        // Then add the drawing canvas layer on top
+        tempCtx.drawImage(drawingCanvas, 0, 0);
+        
+        // Convert the combined canvas to data URL
+        const dataURL = tempCanvas.toDataURL('image/png');
+        
+        // Create a temporary link element
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = 'drawwave-canvas.png';
+        
+        // Append to the body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('Canvas downloaded with all drawing layers');
+      }
+    } else {
+      console.error('Canvas references not available for download');
+    }
+  };
+  
+  // Make handleDownloadCanvas available via ref for Navbar to access
+  useEffect(() => {
+    if (downloadRef) {
+      downloadRef.current = handleDownloadCanvas;
+    }
+  }, [downloadRef]);
+
   // Show session setup UI instead of canvas if not in a session
   const renderSessionControls = () => {
     if (inSession) {

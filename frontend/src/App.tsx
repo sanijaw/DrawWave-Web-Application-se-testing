@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import VirtualPainter from './components/VirtualPainter';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
@@ -10,6 +10,9 @@ function App() {
   const [sessionId, setSessionId] = useState('');
   const [showHome, setShowHome] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Create a ref to store the download function from VirtualPainter
+  const downloadCanvasRef = useRef<(() => void) | null>(null);
 
   // Check local storage on mount to determine if we should show home or VirtualPainter
   useEffect(() => {
@@ -72,7 +75,8 @@ function App() {
           <Navbar 
             inSession={inSession}
             sessionId={sessionId}
-            onLeaveRoom={handleLeaveRoom} 
+            onLeaveRoom={handleLeaveRoom}
+            onDownloadCanvas={downloadCanvasRef.current || undefined}
           />
         )}
         
@@ -85,7 +89,10 @@ function App() {
               </h1>
               <div className="w-48 h-1 mx-auto bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full animate-gradient-x"></div>
             </div>
-            <VirtualPainter onSessionUpdate={handleSessionUpdate} />
+            <VirtualPainter 
+              onSessionUpdate={handleSessionUpdate} 
+              downloadRef={downloadCanvasRef}
+            />
           </>
         )}
       </div>
