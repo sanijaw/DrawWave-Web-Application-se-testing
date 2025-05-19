@@ -1,6 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const LoginButton = () => {
   const { isAuthenticated, user, login, logout } = useAuth();
@@ -24,149 +23,63 @@ const LoginButton = () => {
   if (isAuthenticated && user) {
     return (
       <div className="relative" ref={menuRef}>
-        <motion.button
+        <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="relative focus:outline-none group"
+          className="relative hover:scale-110 transition-transform duration-200 focus:outline-none"
           aria-label="Open user menu"
-          whileHover={{ scale: 1.12 }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
-          {/* Single profile circle with animation */}
-          <div className="relative w-10 h-10 rounded-full overflow-hidden">
-            {/* Animated border/glow effect - using pure CSS animation */}
-            <div 
-              className="absolute inset-0 rounded-full animate-spin-slow"
-              style={{
-                background: 'linear-gradient(90deg, #22c55e, #16a34a, #3b82f6, #22c55e)',
-                padding: '2px'
-              }}
-            >
-              {/* Empty div with transparent background */}
-              <div className="w-full h-full rounded-full">
-                {/* No background, just the border effect */}
-              </div>
-            </div>
-            
-            {/* Profile image - slightly smaller to show the border */}
-            <div className="absolute inset-[2px] rounded-full overflow-hidden">
-              <img 
-                src={user.picture} 
-                alt={user.name} 
-                className="w-full h-full object-cover rounded-full" 
-              />
-              
-              {/* Hover overlay effect */}
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-b from-purple-500/30 to-indigo-600/30 opacity-0 group-hover:opacity-100 rounded-full"
-                transition={{ duration: 0.2 }}
-              />
-            </div>
-          </div>
-          
-          {/* Online status indicator with pulse animation */}
-          <motion.span 
-            className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800 z-10"
-            initial={{ scale: 0.8 }}
-            animate={{ 
-              scale: [0.8, 1, 0.8],
-              boxShadow: ['0 0 0 0 rgba(74, 222, 128, 0.4)', '0 0 0 4px rgba(74, 222, 128, 0.2)', '0 0 0 0 rgba(74, 222, 128, 0.4)'] 
-            }}
-            transition={{ 
-              repeat: Infinity, 
-              duration: 2,
-              ease: 'easeInOut'
-            }}
+          <img 
+            src={user.picture} 
+            alt={user.name} 
+            className="w-8 h-8 rounded-full border-2 border-transparent hover:border-purple-400 transition-all duration-200" 
           />
-        </motion.button>
+          {/* Online status indicator */}
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border border-black"></span>
+        </button>
         
         {/* Dropdown menu */}
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.div 
-              className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 z-50"
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              style={{ transformOrigin: 'top right' }}
+        {menuOpen && (
+          <div 
+            className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-md shadow-lg py-1 z-50 animate-fadeIn"
+            style={{
+              transformOrigin: 'top right',
+              animation: 'fadeIn 0.2s ease-out forwards, slideIn 0.2s ease-out forwards',
+            }}
+          >
+            <div className="px-4 py-2 border-b border-gray-700">
+              <p className="text-sm font-medium text-white truncate">{user.name}</p>
+              <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            </div>
+            <button 
+              onClick={logout}
+              className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors duration-150"
             >
-              <div className="p-4 border-b border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <img 
-                    src={user.picture}
-                    alt={user.name}
-                    className="w-10 h-10 rounded-full border-2 border-purple-400" 
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{user.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
-                  </div>
-                </div>
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
               </div>
-              <motion.button 
-                onClick={logout}
-                className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-700/60 hover:text-red-300 transition-colors duration-150 group flex items-center justify-between rounded-b-md"
-                whileHover={{ x: 2 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span>Sign Out</span>
-                </div>
-                <motion.span 
-                  className="opacity-0 group-hover:opacity-100 text-xs"
-                  initial={{ x: -10 }}
-                  animate={{ x: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  →
-                </motion.span>
-              </motion.button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <motion.button
+    <button
       onClick={login}
-      className="bg-gradient-to-r from-white to-gray-100 hover:from-gray-50 hover:to-white text-gray-800 font-semibold py-2 px-5 rounded-full shadow-md flex items-center transition-colors duration-200 relative overflow-hidden group"
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+      className="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow flex items-center transition-all duration-200 hover:shadow-md"
     >
-      <motion.div 
-        className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-pink-400/20 to-indigo-400/20 opacity-0 group-hover:opacity-100 rounded-full"
-        initial={{ x: '-100%' }}
-        whileHover={{ x: '0%' }}
-        transition={{ duration: 0.5 }}
-      />
-      
-      <div className="mr-3 relative">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
-          <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
-          <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
-          <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
-          <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
-        </svg>
-      </div>
-      
-      <span className="relative">Sign in with Google</span>
-      
-      <motion.span 
-        className="absolute right-4 opacity-0 group-hover:opacity-100"
-        initial={{ x: -10 }}
-        whileHover={{ x: 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        →
-      </motion.span>
-    </motion.button>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48" className="mr-2">
+        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+      </svg>
+      Sign in with Google
+    </button>
   );
 };
 
