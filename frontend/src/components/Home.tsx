@@ -8,6 +8,7 @@ interface HomeProps {
 const Home = ({ onStartRoom }: HomeProps) => {
   const [animate, setAnimate] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [autoplayVideo, setAutoplayVideo] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const demoSectionRef = useRef<HTMLDivElement>(null);
   
@@ -17,8 +18,12 @@ const Home = ({ onStartRoom }: HomeProps) => {
   // Animation frames reference
   const animationFrameRef = useRef<number | null>(null);
   
-  // Function to scroll to demo section
+  // Function to scroll to demo section and autoplay video
   const scrollToDemo = () => {
+    // Set autoplay to true when View Demo is clicked
+    setAutoplayVideo(true);
+    
+    // Scroll to the demo section
     if (demoSectionRef.current) {
       demoSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     } else {
@@ -114,7 +119,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full relative overflow-hidden bg-black">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full relative overflow-hidden bg-black" style={{ pointerEvents: 'auto' }}>
       {/* Authentication Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
@@ -263,7 +268,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
               <span className="absolute left-0.5 top-0.5 text-[#d946ef]/10 blur-sm animate-pulse-slow">How DrawWave Works</span>
             </h2>
             <div className="h-1 w-32 bg-gradient-to-r from-[#a855f7] to-[#7e22ce] mx-auto mt-4 rounded-full shadow-lg shadow-purple-500/20 animate-pulse-slow"></div>
-            <p className="text-base sm:text-lg text-[#a855f7]/80 mt-5 mb-10 max-w-2xl mx-auto">Easy collaboration in three simple steps</p>
+            <p className="text-base sm:text-lg text-white mt-5 mb-10 max-w-2xl mx-auto font-medium">Easy collaboration in three simple steps</p>
           </div>
           
           {/* Steps Timeline with 3D effects */}
@@ -275,8 +280,8 @@ const Home = ({ onStartRoom }: HomeProps) => {
             <div className="flex flex-col md:flex-row items-center mb-28 relative group">
               <div className={`w-full md:w-1/2 pr-0 md:pr-16 text-center md:text-right transition-all duration-700 transform-gpu ${animate ? 'translate-x-0 opacity-100 rotate-y-0' : '-translate-x-10 opacity-0 rotate-y-10'} hover:translate-z-10 hover:scale-105`} style={{ transitionDelay: '300ms' }}>
                 <div className="bg-[#1a002a]/60 backdrop-blur-md border border-purple-900/30 rounded-xl p-6 hover:border-purple-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/20">
-                  <h3 className="text-white font-medium text-xl sm:text-2xl mb-3 bg-gradient-to-r from-pink-300 to-purple-300 text-transparent bg-clip-text">1. Create a Session</h3>
-                  <p className="text-white/70 text-sm sm:text-base">Start your creative journey by creating a new drawing room. Get a unique session ID to share with your team.</p>
+                  <h3 className="text-white font-medium text-xl sm:text-2xl mb-3 bg-gradient-to-r from-pink-200 to-purple-100 text-transparent bg-clip-text" style={{ textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' }}>1. Create a Session</h3>
+                  <p className="text-white text-sm sm:text-base font-medium">Start your creative journey by creating a new drawing room. Get a unique session ID to share with your team.</p>
                 </div>
               </div>
               
@@ -307,8 +312,8 @@ const Home = ({ onStartRoom }: HomeProps) => {
               
               <div className={`w-full md:w-1/2 pl-0 md:pl-16 text-center md:text-left transition-all duration-700 transform-gpu ${animate ? 'translate-x-0 opacity-100 rotate-y-0' : 'translate-x-10 opacity-0 rotate-y-10'} hover:translate-z-10 hover:scale-105`} style={{ transitionDelay: '900ms' }}>
                 <div className="bg-[#1a002a]/60 backdrop-blur-md border border-purple-900/30 rounded-xl p-6 hover:border-purple-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/20">
-                  <h3 className="text-white font-medium text-xl sm:text-2xl mb-3 bg-gradient-to-r from-pink-300 to-purple-300 text-transparent bg-clip-text">2. Invite Collaborators</h3>
-                  <p className="text-white/70 text-sm sm:text-base">Share your session ID with teammates. They'll instantly connect to your drawing room in real-time.</p>
+                  <h3 className="text-white font-medium text-xl sm:text-2xl mb-3 bg-gradient-to-r from-pink-200 to-purple-100 text-transparent bg-clip-text" style={{ textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' }}>2. Invite Collaborators</h3>
+                  <p className="text-white text-sm sm:text-base font-medium">Share your session ID with teammates. They'll instantly connect to your drawing room in real-time.</p>
                 </div>
               </div>
             </div>
@@ -317,8 +322,8 @@ const Home = ({ onStartRoom }: HomeProps) => {
             <div className="flex flex-col md:flex-row items-center relative group">
               <div className={`w-full md:w-1/2 pr-0 md:pr-16 text-center md:text-right transition-all duration-700 transform-gpu ${animate ? 'translate-x-0 opacity-100 rotate-y-0' : '-translate-x-10 opacity-0 rotate-y-10'} hover:translate-z-10 hover:scale-105`} style={{ transitionDelay: '1100ms' }}>
                 <div className="bg-[#1a002a]/60 backdrop-blur-md border border-purple-900/30 rounded-xl p-6 hover:border-purple-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/20">
-                  <h3 className="text-white font-medium text-xl sm:text-2xl mb-3 bg-gradient-to-r from-pink-300 to-purple-300 text-transparent bg-clip-text">3. Create Together</h3>
-                  <p className="text-white/70 text-sm sm:text-base">Draw, sketch, and create together in perfect sync. Every stroke appears instantly for all participants.</p>
+                  <h3 className="text-white font-medium text-xl sm:text-2xl mb-3 bg-gradient-to-r from-pink-200 to-purple-100 text-transparent bg-clip-text" style={{ textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' }}>3. Create Together</h3>
+                  <p className="text-white text-sm sm:text-base font-medium">Draw, sketch, and create together in perfect sync. Every stroke appears instantly for all participants.</p>
                 </div>
               </div>
               
@@ -335,8 +340,8 @@ const Home = ({ onStartRoom }: HomeProps) => {
             </div>
           </div>
           
-          {/* Feature Highlights */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16">
+          {/* Features Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-16">
             {[
               {
                 title: 'Real-time Collaboration',
@@ -371,7 +376,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
             ].map((feature) => (
               <div 
                 key={feature.title} 
-                className={`bg-[#1a002a]/50 backdrop-blur-sm border border-purple-900/30 rounded-lg p-4 hover:border-purple-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/10 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                className={`bg-[#1a002a]/70 backdrop-blur-md border border-purple-900/50 rounded-lg p-5 hover:border-purple-500/70 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/30 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
                 style={{ transitionDelay: `${1400 + feature.delay}ms` }}
               >
                 <div className="flex items-start">
@@ -379,19 +384,57 @@ const Home = ({ onStartRoom }: HomeProps) => {
                     <div className="text-[#a855f7]">{feature.icon}</div>
                   </div>
                   <div>
-                    <h3 className="text-white font-medium text-sm">{feature.title}</h3>
-                    <p className="text-white/60 text-xs mt-1">{feature.description}</p>
+                    <h3 className="text-white font-medium text-base">{feature.title}</h3>
+                    <p className="text-white text-xs mt-1 font-medium">{feature.description}</p>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+          
+          {/* Demo Video Section */}
+          <div className="mt-32 mb-16">
+            <div className={`text-center mb-8 transform-gpu ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} transition-all duration-1000 ease-out delay-1500`}>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 relative inline-block">
+                <span className="relative z-10 bg-gradient-to-r from-purple-300 via-fuchsia-300 to-indigo-300 text-transparent bg-clip-text">
+                  See DrawWave in Action
+                </span>
+                <span className="absolute -left-1 -top-1 text-[#a855f7]/10 blur-md">See DrawWave in Action</span>
+              </h2>
+              <p className="text-white text-base sm:text-lg max-w-2xl mx-auto font-medium">Watch our demo to see how easy it is to collaborate in real-time</p>
+            </div>
+            
+            {/* Video container using direct iframe without any overlays */}
+            <div className={`w-full max-w-4xl mx-auto transform-gpu ${animate ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'} transition-all duration-1000 ease-out delay-1600`}
+                 style={{ aspectRatio: '16/9', marginBottom: '20px' }}>
+                 
+              {/* YouTube video - positioned as the only element */}
+              <iframe 
+                className="w-full h-full rounded-lg" 
+                src={`https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0${autoplayVideo ? '&autoplay=1&mute=0' : ''}`} 
+                title="DrawWave Demo" 
+                frameBorder="0"
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              ></iframe>
+            </div>
+            
+            {/* Decorative elements positioned separately */}
+            <div className="relative max-w-4xl mx-auto w-full h-8 mt-4">
+              <div className="absolute -top-6 -left-6 w-12 h-12 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full blur-xl opacity-70 animate-pulse-slow"></div>
+              <div className="absolute -bottom-4 -right-8 w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full blur-xl opacity-70 animate-float"></div>
+            </div>
+            
+            <div className={`flex justify-center mt-8 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} transition-all duration-1000 ease-out delay-1800`} style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto' }}>
+              
+            </div>
           </div>
         </div>
       </section>
       
       {/* Footer */}
       <p className={`absolute bottom-4 text-xs text-white/30 ${animate ? 'opacity-100' : 'opacity-0'} transition-all duration-1000 ease-out animation-delay-800`}>
-        
+        © {new Date().getFullYear()} DrawWave. All rights reserved.
       </p>
     </div>
   );
