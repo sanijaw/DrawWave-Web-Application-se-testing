@@ -11,10 +11,10 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: '*',                 // Allow all origins
-  methods: '*',                // Allow all methods
-  allowedHeaders: '*',         // Allow all headers
-  exposedHeaders: '*',         // Expose all headers            
+  origin:["https://app.drawwave.space", "http://localhost:5173"] ,
+  credentials: true, // Important for authentication
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
 }));
 app.use(bodyParser.json());
 
@@ -43,6 +43,7 @@ app.use('/api/sessions', require('./routes/sessions'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/rooms', require('./routes/rooms'));
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/health', require('./routes/health'))
 
 // Basic route
 app.get('/', (req, res) => {
