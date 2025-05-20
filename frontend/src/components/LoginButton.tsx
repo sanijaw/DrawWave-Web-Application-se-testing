@@ -25,16 +25,15 @@ const LoginButton = () => {
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="relative hover:scale-110 transition-transform duration-200 focus:outline-none"
+          className="flex items-center bg-[#2a0a44] hover:bg-[#3b1362] px-3 py-2 rounded-lg transition-all duration-200 focus:outline-none"
           aria-label="Open user menu"
         >
           <img 
             src={user.picture} 
             alt={user.name} 
-            className="w-8 h-8 rounded-full border-2 border-transparent hover:border-purple-400 transition-all duration-200" 
+            className="w-7 h-7 rounded-full mr-2 border border-purple-300/30" 
           />
-          {/* Online status indicator */}
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border border-black"></span>
+          <span className="text-white text-sm font-medium">Signed in as {user.name.split(' ')[0]}</span>
         </button>
         
         {/* Dropdown menu */}

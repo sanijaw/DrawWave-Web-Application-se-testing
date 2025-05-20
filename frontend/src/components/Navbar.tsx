@@ -18,6 +18,10 @@ const Navbar = ({ inSession, sessionId, onLeaveRoom, onDownloadCanvas }: NavbarP
     setShowConfirmation(false);
     onLeaveRoom();
     console.log('Leave room action confirmed');
+    // Redirect to home page after a short delay to allow onLeaveRoom to complete
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 300);
   };
 
   return (
@@ -112,7 +116,13 @@ const Navbar = ({ inSession, sessionId, onLeaveRoom, onDownloadCanvas }: NavbarP
           {/* Leave Room button */}
           {inSession && (
             <button
-              onClick={() => onLeaveRoom()}
+              onClick={() => {
+                onLeaveRoom();
+                // Redirect to home page after a short delay
+                setTimeout(() => {
+                  window.location.href = '/';
+                }, 300);
+              }}
               className="bg-red-600 hover:bg-red-700 text-white px-2 py-2 rounded-md shadow-sm transition-colors duration-200 text-sm font-medium flex items-center"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="#222">

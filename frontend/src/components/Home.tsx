@@ -9,6 +9,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
   const [animate, setAnimate] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [autoplayVideo, setAutoplayVideo] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const demoSectionRef = useRef<HTMLDivElement>(null);
   const desktopSectionRef = useRef<HTMLDivElement>(null);
@@ -43,6 +44,21 @@ const Home = ({ onStartRoom }: HomeProps) => {
     }
   };
   
+  // Handle scroll events for parallax effects
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   useEffect(() => {
     // Start animations after component mounts
     setAnimate(true);
@@ -435,9 +451,24 @@ const Home = ({ onStartRoom }: HomeProps) => {
           </div>
           
           {/* Desktop Version Section */}
-          <div ref={desktopSectionRef} className="mt-32 mb-16 text-center relative z-50">
-            <div className={`transform-gpu relative z-50 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} transition-all duration-1000 ease-out delay-1500`}>
-              <div className="absolute inset-0 w-full h-full bg-black/40 backdrop-blur-sm -z-10 rounded-3xl"></div>
+          <div 
+            ref={desktopSectionRef} 
+            className="mt-32 mb-16 text-center relative z-50"
+          >
+            <div 
+              className={`transform-gpu relative z-50 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} transition-all duration-1000 ease-out delay-1500`}
+              style={{
+                transform: `perspective(1000px) rotateX(${Math.min(scrollY * 0.02, 10)}deg) translateZ(${Math.min(scrollY * 0.05, 30)}px)`,
+                transition: 'transform 0.1s ease-out'
+              }}
+            >
+              <div 
+                className="absolute inset-0 w-full h-full bg-black/40 backdrop-blur-sm -z-10 rounded-3xl"
+                style={{
+                  transform: `scale(${1 + scrollY * 0.0003}) translateY(${scrollY * -0.01}px)`,
+                  opacity: 0.4 + Math.min(scrollY * 0.0005, 0.3)
+                }}
+              ></div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 relative inline-block drop-shadow-xl">
                 <span className="relative z-10 bg-gradient-to-r from-purple-300 via-fuchsia-300 to-indigo-300 text-transparent bg-clip-text drop-shadow-lg">
                   Try DrawWave Desktop
@@ -450,23 +481,55 @@ const Home = ({ onStartRoom }: HomeProps) => {
               </p>
               
               {/* Desktop Features Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8 px-4 relative z-10">
-                <div className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30">
+              <div 
+                className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8 px-4 relative z-10"
+                style={{
+                  transform: `translateZ(${scrollY * 0.08}px)`,
+                  transition: 'transform 0.1s ease-out'
+                }}
+              >
+                <div 
+                  className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30"
+                  style={{
+                    transform: `perspective(1000px) rotateY(${scrollY * -0.01}deg) translateZ(${scrollY * 0.05}px)`,
+                    transition: 'all 0.2s ease-out',
+                  }}
+                >
                   <h3 className="text-white text-lg font-semibold mb-2 drop-shadow-md">Better Performance</h3>
                   <p className="text-white/90 text-sm">Experience smoother drawing and faster response times with native desktop performance</p>
                 </div>
-                <div className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30">
+                <div 
+                  className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30"
+                  style={{
+                    transform: `perspective(1000px) translateZ(${scrollY * 0.07}px)`,
+                    transition: 'all 0.2s ease-out',
+                    transitionDelay: '0.05s'
+                  }}
+                >
                   <h3 className="text-white text-lg font-semibold mb-2 drop-shadow-md">Offline Support</h3>
                   <p className="text-white/90 text-sm">Continue drawing even without an internet connection and sync when back online</p>
                 </div>
-                <div className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30">
+                <div 
+                  className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30"
+                  style={{
+                    transform: `perspective(1000px) rotateY(${scrollY * 0.01}deg) translateZ(${scrollY * 0.05}px)`,
+                    transition: 'all 0.2s ease-out',
+                    transitionDelay: '0.1s'
+                  }}
+                >
                   <h3 className="text-white text-lg font-semibold mb-2 drop-shadow-md">Advanced Tools</h3>
                   <p className="text-white/90 text-sm">Access additional drawing tools and customization options exclusive to the desktop version</p>
                 </div>
               </div>
               
               {/* Download Button */}
-              <div className="flex justify-center space-x-4 relative z-20">
+              <div 
+                className="flex justify-center space-x-4 relative z-20"
+                style={{
+                  transform: `translateY(${scrollY * 0.03}px) scale(${1 + scrollY * 0.0002})`,
+                  transition: 'transform 0.2s ease-out'
+                }}
+              >
                 <a
                   href="/downloads/DrawWave-Setup.exe"
                   download
@@ -511,8 +574,20 @@ const Home = ({ onStartRoom }: HomeProps) => {
             
             {/* Decorative elements positioned separately */}
             <div className="relative max-w-4xl mx-auto w-full h-8 mt-4">
-              <div className="absolute -top-6 -left-6 w-12 h-12 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full blur-xl opacity-70 animate-pulse-slow"></div>
-              <div className="absolute -bottom-4 -right-8 w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full blur-xl opacity-70 animate-float"></div>
+              <div 
+                className="absolute -top-6 -left-6 w-12 h-12 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full blur-xl opacity-70 animate-pulse-slow"
+                style={{
+                  transform: `translateX(${scrollY * 0.05}px) translateY(${scrollY * -0.02}px) rotate(${scrollY * 0.03}deg)`,
+                  transition: 'transform 0.1s ease-out'
+                }}
+              ></div>
+              <div 
+                className="absolute -bottom-4 -right-8 w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full blur-xl opacity-70 animate-float"
+                style={{
+                  transform: `translateX(${scrollY * -0.07}px) translateY(${scrollY * 0.04}px) rotate(${scrollY * -0.05}deg)`,
+                  transition: 'transform 0.1s ease-out'
+                }}
+              ></div>
             </div>
             
             <div className={`flex justify-center mt-8 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} transition-all duration-1000 ease-out delay-1800`} style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto' }}>
