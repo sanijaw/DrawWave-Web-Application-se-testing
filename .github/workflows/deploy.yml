@@ -93,7 +93,7 @@ jobs:
             
             # Create docker-compose.yml file
             mkdir -p ~/drawwave
-            export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+            export DOCKERHUB_USERNAME="yevinraizel"
             export VPS_HOST="${{ secrets.VPS_HOST }}"
             
             cat > ~/drawwave/docker-compose.yml << EOL
@@ -101,7 +101,7 @@ jobs:
             
             services:
               frontend:
-                image: ${DOCKERHUB_USERNAME}/drawwave-frontend:latest
+                image: yevinraizel/drawwave-frontend:latest
                 restart: unless-stopped
                 ports:
                   - "80:80"
@@ -111,7 +111,7 @@ jobs:
                   - VITE_API_URL=http://${VPS_HOST}:5000/api
             
               backend:
-                image: ${DOCKERHUB_USERNAME}/drawwave-backend:latest
+                image: yevinraizel/drawwave-backend:latest
                 restart: unless-stopped
                 ports:
                   - "5000:5000"
@@ -123,7 +123,7 @@ jobs:
                   - mongo
             
               python:
-                image: ${DOCKERHUB_USERNAME}/drawwave-python:latest
+                image: yevinraizel/drawwave-python:latest
                 restart: unless-stopped
                 ports:
                   - "8765:8765"
