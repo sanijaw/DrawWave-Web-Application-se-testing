@@ -17,8 +17,12 @@ const WebcamStream = () => {
   useEffect(() => {
     // Set up WebSocket connection
     const setupWebSocket = () => {
-      // Use the TypeScript backend WebSocket server
-      const ws = new WebSocket('ws://localhost:8080');
+      // Get WebSocket URL from environment variables or fallback to default
+      let WS_URL = import.meta.env.VITE_WEBCAM_WEBSOCKET_URL || 'ws://localhost:8080';
+      console.log('Connecting to webcam WebSocket server at:', WS_URL);
+      
+      // Create a new WebSocket connection
+      const ws = new WebSocket(WS_URL);
       
       ws.onopen = () => {
         console.log('WebSocket connection established');

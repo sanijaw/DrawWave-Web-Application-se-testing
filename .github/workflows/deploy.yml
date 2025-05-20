@@ -1,0 +1,131 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Docker Buildx for more efficient builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build and push Frontend Docker image
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:buildcache,mode=max
+
+      # Build and push Backend Docker image
+      - name: Build and push Backend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-backend:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/drawwave-backend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/drawwave-backend:buildcache,mode=max
+
+      # Build and push Python Docker image
+      - name: Build and push Python
+        uses: docker/build-push-action@v4
+        with:
+          context: ./python
+          file: ./python/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-python:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/drawwave-python:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/drawwave-python:buildcache,mode=max
+
+      # Deploy to VPS using SSH
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            # Login to Docker Hub to pull images
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+            
+            # Pull the latest images
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-backend:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-python:latest
+            
+            # Create docker-compose.yml if it doesn't exist
+            mkdir -p ~/drawwave
+            cat > ~/drawwave/docker-compose.yml << 'EOL'
+            version: '3.8'
+            
+            services:
+              frontend:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:latest
+                restart: unless-stopped
+                ports:
+                  - "80:80"
+                environment:
+                  - VITE_WEBSOCKET_URL=ws://${VPS_HOST}:8765
+                  - VITE_WEBCAM_WEBSOCKET_URL=ws://${VPS_HOST}:8080
+            
+              backend:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-backend:latest
+                restart: unless-stopped
+                ports:
+                  - "5000:5000"
+                environment:
+                  - PORT=5000
+                  - MONGODB_URI=mongodb://mongo:27017/drawwave
+                  - NODE_ENV=production
+                  - SESSION_SECRET=${SESSION_SECRET}
+                depends_on:
+                  - mongo
+            
+              python:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-python:latest
+                restart: unless-stopped
+                ports:
+                  - "8765:8765"
+                environment:
+                  - API_URL=http://backend:5000/api
+            
+              mongo:
+                image: mongo:latest
+                restart: unless-stopped
+                volumes:
+                  - mongo-data:/data/db
+            
+            volumes:
+              mongo-data:
+            EOL
+            
+            # Stop any running containers and start fresh with our updated images
+            cd ~/drawwave
+            export VPS_HOST=${{ secrets.VPS_HOST }}
+            export SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+            docker-compose down
+            docker-compose up -d
+            
+            # Remove unused images to free up space
+            docker image prune -a -f

@@ -1,0 +1,44 @@
+{
+  "name": "drawwave-tests",
+  "version": "1.0.0",
+  "description": "Test suite for DrawWave application",
+  "main": "index.js",
+  "scripts": {
+    "test:backend-api": "jest backend_api.test.js",
+    "test:frontend": "jest frontend.test.js",
+    "test:websocket": "python websocket_server.test.py",
+    "test:session": "jest session_persistence.test.js",
+    "test": "npm run test:backend-api && npm run test:session && npm run test:websocket"
+  },
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.4.3",
+    "express": "^5.1.0",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0",
+    "mongodb-memory-server": "^8.12.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.10.0",
+    "supertest": "^6.3.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.27.1",
+    "@babel/preset-env": "^7.27.2",
+    "@babel/preset-react": "^7.27.1",
+    "babel-jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "moduleNameMapper": {
+      "\\.(css|less|scss|sass)$": "<rootDir>/styleMock.js"
+    },
+    "transform": {
+      "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
+    },
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ]
+  }
+}

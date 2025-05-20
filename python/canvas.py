@@ -18,12 +18,66 @@ class Canvas:
         
         
     def set_cursor_position(self, x, y):
-        self.cursor_position = (int(x * self.width), int(y * self.height))
+        # Convert normalized coordinates (0-1) to actual pixels
+        x_pixel = int(x * self.width)
+        y_pixel = int(y * self.height)
+        
+        # Ensure the cursor position is within canvas bounds
+        x_pixel = max(0, min(self.width - 1, x_pixel))
+        y_pixel = max(0, min(self.height - 1, y_pixel))
+        
+        # Store the cursor position
+        self.cursor_position = (x_pixel, y_pixel)
 
     def draw_cursor(self):
-        cursor_radius = 5
-        temp_canvas = self.canvas.copy()  # Draw cursor on a temporary copy
-        cv2.circle(temp_canvas, self.cursor_position, cursor_radius, (255, 0, 0), -1)
+        # Create a temporary copy of canvas for cursor drawing
+        temp_canvas = self.canvas.copy()
+        
+        # Store cursor animation state if not already present
+        if not hasattr(self, '_cursor_pulse_value'):
+            self._cursor_pulse_value = 0
+        if not hasattr(self, '_cursor_pulse_direction'):
+            self._cursor_pulse_direction = 1
+        if not hasattr(self, '_cursor_mode'):
+            self._cursor_mode = "IDLE"
+            
+        # Create a pulsing effect for the cursor
+        self._cursor_pulse_value += 0.5 * self._cursor_pulse_direction
+        if self._cursor_pulse_value >= 10 or self._cursor_pulse_value <= 0:
+            self._cursor_pulse_direction *= -1
+            
+        # Determine cursor color based on mode
+        if hasattr(self, '_cursor_mode'):
+            if self._cursor_mode == "DRAW":
+                cursor_color = (0, 165, 255)  # Orange for drawing
+            elif self._cursor_mode == "ERASE":
+                cursor_color = (0, 0, 255)    # Red for erasing
+            else:
+                cursor_color = (255, 0, 0)    # Blue for idle
+        else:
+            cursor_color = (255, 0, 0)  # Default blue
+            
+        # Create a more sophisticated cursor
+        # 1. Inner solid circle
+        inner_radius = 5
+        cv2.circle(temp_canvas, self.cursor_position, inner_radius, cursor_color, -1)
+        
+        # 2. Pulsing outer ring
+        outer_radius = 7 + int(self._cursor_pulse_value/2)
+        cv2.circle(temp_canvas, self.cursor_position, outer_radius, cursor_color, 2)
+        
+        # 3. Crosshair for precise positioning
+        crosshair_size = 8
+        x, y = self.cursor_position
+        cv2.line(temp_canvas, (x - crosshair_size, y), (x + crosshair_size, y), cursor_color, 1)
+        cv2.line(temp_canvas, (x, y - crosshair_size), (x, y + crosshair_size), cursor_color, 1)
+        
+        # 4. Add mode indicator text
+        if hasattr(self, '_cursor_mode'):
+            cv2.putText(temp_canvas, self._cursor_mode, 
+                      (self.cursor_position[0] + 15, self.cursor_position[1] - 15),
+                      cv2.FONT_HERSHEY_SIMPLEX, 0.6, cursor_color, 2)
+        
         return temp_canvas  # Return for display without saving to history
 
 
