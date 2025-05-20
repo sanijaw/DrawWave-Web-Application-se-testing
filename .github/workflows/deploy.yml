@@ -67,9 +67,9 @@ jobs:
             
             
             # Pull the latest images
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:latest
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-backend:latest
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-python:latest
+            docker pull yevinraizel/drawwave-frontend:latest
+            docker pull yevinraizel/drawwave-backend:latest
+            docker pull yevinraizel/drawwave-python:latest
             
             # Create backend .env file from GitHub secrets
             mkdir -p ~/drawwave/backend
