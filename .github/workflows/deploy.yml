@@ -52,7 +52,7 @@ jobs:
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
           
           # Frontend URL for redirects
-          FRONTEND_URL=http://app.drawwave.space
+          FRONTEND_URL=https://app.drawwave.space
           EOL
 
       # Build and push Backend Docker image
@@ -123,7 +123,7 @@ jobs:
                 image: yevinraizel/drawwave-frontend:latest
                 restart: unless-stopped
                 ports:
-                  - "80:80"
+                  - "81:81"
                 environment:
                   - VITE_WEBSOCKET_URL=ws://${VPS_HOST}:8765
                   - VITE_WEBCAM_WEBSOCKET_URL=ws://${VPS_HOST}:8080
