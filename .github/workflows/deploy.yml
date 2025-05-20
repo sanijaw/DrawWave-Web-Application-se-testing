@@ -117,8 +117,6 @@ jobs:
                   - "5000:5000"
                 volumes:
                   - ~/drawwave/backend/.env:/app/.env
-                environment:
-                  - NODE_ENV=production
                 depends_on:
                   - mongo
             
