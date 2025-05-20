@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import VirtualPainter from './components/VirtualPainter';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
-import Desktop from './components/Desktop';
 import Preloader from './components/Preloader';
 import AuthCallback from './components/AuthCallback';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -80,7 +79,6 @@ function App() {
               {/* Routes */}
               <Routes>
                 <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/desktop" element={<Desktop />} />
                 <Route path="*" element={null} /> {/* Catch-all route that renders nothing, letting the conditional content below handle rendering */}
               </Routes>
 
