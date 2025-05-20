@@ -424,19 +424,14 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     const ctx = drawingCanvas.getContext('2d');
     if (!ctx) return;
 
-    const scaleFactor = {
-      x: drawingCanvas.width / drawingCanvas.offsetWidth,
-      y: drawingCanvas.height / drawingCanvas.offsetHeight
-    };
-
-    // Scale the coordinates
-    const scaledX = x * scaleFactor.x;
-    const scaledY = y * scaleFactor.y;
+    // Convert normalized coordinates (0-1) to actual canvas pixels
+    const scaledX = x * drawingCanvas.width;
+    const scaledY = y * drawingCanvas.height;
     
     // If we have a previous point, draw a line from it to current point
     if (prevPoint) {
-      const scaledPrevX = prevPoint.x * scaleFactor.x;
-      const scaledPrevY = prevPoint.y * scaleFactor.y;
+      const scaledPrevX = prevPoint.x * drawingCanvas.width;
+      const scaledPrevY = prevPoint.y * drawingCanvas.height;
       
       ctx.beginPath();
       ctx.strokeStyle = selectedColor;
@@ -454,10 +449,10 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
       ctx.fill();
     }
 
-    // Update previous point
+    // Update previous point with normalized coordinates
     setPrevPoint({ x, y });
     
-    // Update current drawing action with new point
+    // Update current drawing action with normalized coordinates
     if (currentDrawAction) {
       setCurrentDrawAction(prev => {
         if (prev) {
@@ -474,47 +469,47 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     sendDrawingUpdate(drawingCanvas);
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isMouseDrawing) return;
-    
-    const canvas = drawingCanvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    
-    startDrawing(x, y);
-  };
+const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  if (!isMouseDrawing) return;
   
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isMouseDrawing || !isDrawing) return;
-    
-    const canvas = drawingCanvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    
-    draw(x, y);
-  };
+  const canvas = drawingCanvasRef.current;
+  if (!canvas) return;
   
-  const handleMouseUp = () => {
-    if (!isMouseDrawing) return;
-    stopDrawing();
-  };
+  const rect = canvas.getBoundingClientRect();
   
-  const handleMouseLeave = () => {
-    if (!isMouseDrawing) return;
-    stopDrawing();
-  };
+  // Calculate the normalized position (0 to 1) for consistent scaling
+  const normalizedX = (e.clientX - rect.left) / rect.width;
+  const normalizedY = (e.clientY - rect.top) / rect.height;
+  
+  // Use normalized coordinates for drawing
+  startDrawing(normalizedX, normalizedY);
+};
+
+const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  if (!isMouseDrawing || !isDrawing) return;
+  
+  const canvas = drawingCanvasRef.current;
+  if (!canvas) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  
+  // Calculate the normalized position (0 to 1) for consistent scaling
+  const normalizedX = (e.clientX - rect.left) / rect.width;
+  const normalizedY = (e.clientY - rect.top) / rect.height;
+  
+  // Use normalized coordinates for drawing
+  draw(normalizedX, normalizedY);
+};
+
+const handleMouseUp = () => {
+  if (!isMouseDrawing) return;
+  stopDrawing();
+};
+
+const handleMouseLeave = () => {
+  if (!isMouseDrawing) return;
+  stopDrawing();
+};
 
   // Function to clear session data from localStorage
   const clearSessionFromLocalStorage = () => {

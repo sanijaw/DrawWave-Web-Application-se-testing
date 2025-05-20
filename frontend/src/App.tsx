@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import VirtualPainter from './components/VirtualPainter';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
+import Desktop from './components/Desktop';
 import Preloader from './components/Preloader';
 import AuthCallback from './components/AuthCallback';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -76,9 +77,10 @@ function App() {
             
             {/* Main App Content (rendered but initially hidden by preloader) */}
             <div className={`min-h-screen w-full transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-              {/* Special route for auth callback */}
+              {/* Routes */}
               <Routes>
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/desktop" element={<Desktop />} />
                 <Route path="*" element={null} /> {/* Catch-all route that renders nothing, letting the conditional content below handle rendering */}
               </Routes>
 

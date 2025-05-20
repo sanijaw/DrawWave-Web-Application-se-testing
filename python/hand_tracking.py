@@ -108,7 +108,7 @@ class HandTracker:
 
             # ↩️ Undo: All fingers up
             if index_up and middle_up and not thumb_down and not ring_down and not pinky_down:
-                return "undo"
+                return "idle"
                 
             # Idle: We'll default to idle for any unrecognized gestures
 

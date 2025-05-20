@@ -255,21 +255,43 @@ const Home = ({ onStartRoom }: HomeProps) => {
 
         
         {/* Bottom icons row with hover effects */}
-        <div className={`flex gap-12 mt-2 ${animate ? 'opacity-100' : 'opacity-0'} transition-all duration-1000 ease-out animation-delay-700`}>
-          {['Draw', 'Collab', 'Platform'].map((label, index) => (
-            <div key={label} className="flex flex-col items-center group">
-              <div className={`w-10 h-10 border border-[#a855f7]/30 rounded-md flex items-center justify-center mb-2 transform transition-all duration-300 group-hover:scale-110 group-hover:border-[#a855f7]/60 group-hover:shadow-md group-hover:shadow-[#a855f7]/20 animation-delay-${index * 300}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                     className={`w-4 h-4 text-[#a855f7]/70 group-hover:text-[#a855f7] transition-all duration-300 ${animate ? 'animate-float' : ''}`}
-                     style={{ animationDelay: `${index * 0.3}s` }}>
-                  {index === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />}
-                  {index === 1 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />}
-                  {index === 2 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />}
-                </svg>
+        <div className="flex flex-col items-center gap-8">
+          <div className={`flex gap-12 mt-2 ${animate ? 'opacity-100' : 'opacity-0'} transition-all duration-1000 ease-out animation-delay-700`}>
+            {['Draw', 'Collab', 'Platform'].map((label, index) => (
+              <div key={label} className="flex flex-col items-center group">
+                <div className={`w-10 h-10 border border-[#a855f7]/30 rounded-md flex items-center justify-center mb-2 transform transition-all duration-300 group-hover:scale-110 group-hover:border-[#a855f7]/60 group-hover:shadow-md group-hover:shadow-[#a855f7]/20 animation-delay-${index * 300}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                       className={`w-4 h-4 text-[#a855f7]/70 group-hover:text-[#a855f7] transition-all duration-300 ${animate ? 'animate-float' : ''}`}
+                       style={{ animationDelay: `${index * 0.3}s` }}>
+                    {index === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />}
+                    {index === 1 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />}
+                    {index === 2 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />}
+                  </svg>
+                </div>
+                <p className="text-xs text-white/70 group-hover:text-white transition-colors duration-300">{label}</p>
               </div>
-              <p className="text-xs text-white/70 group-hover:text-white transition-colors duration-300">{label}</p>
-            </div>
-          ))}
+            ))}
+          </div>
+          
+          {/* Download Buttons */}
+          <div className={`flex items-center gap-4 mt-4 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} transition-all duration-1000 ease-out animation-delay-800`}>
+            <a
+              href="/downloads/DrawWave-Setup.exe"
+              download
+              className="inline-flex items-center px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/30"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download Desktop App
+            </a>
+            <a
+              href="/desktop"
+              className="inline-flex items-center px-6 py-3 rounded-lg border border-purple-500/50 text-white font-medium hover:bg-purple-500/10 transition-all duration-300"
+            >
+              Learn More
+            </a>
+          </div>
         </div>
         
       </div>
@@ -406,6 +428,58 @@ const Home = ({ onStartRoom }: HomeProps) => {
                 </div>
               </div>
             ))}
+          </div>
+          
+          {/* Desktop Version Section */}
+          <div className="mt-32 mb-16 text-center">
+            <div className={`transform-gpu ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} transition-all duration-1000 ease-out delay-1500`}>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 relative inline-block">
+                <span className="relative z-10 bg-gradient-to-r from-purple-300 via-fuchsia-300 to-indigo-300 text-transparent bg-clip-text">
+                  Try DrawWave Desktop
+                </span>
+                <span className="absolute -left-1 -top-1 text-[#a855f7]/10 blur-md">Try DrawWave Desktop</span>
+              </h2>
+              <p className="text-white text-base sm:text-lg max-w-2xl mx-auto font-medium mb-8">
+                Experience enhanced performance and additional features with our desktop application
+              </p>
+              
+              {/* Desktop Features Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8 px-4">
+                <div className="bg-[#1a002a]/70 backdrop-blur-md border border-purple-900/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300">
+                  <h3 className="text-white text-lg font-semibold mb-2">Better Performance</h3>
+                  <p className="text-white/80 text-sm">Experience smoother drawing and faster response times with native desktop performance</p>
+                </div>
+                <div className="bg-[#1a002a]/70 backdrop-blur-md border border-purple-900/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300">
+                  <h3 className="text-white text-lg font-semibold mb-2">Offline Support</h3>
+                  <p className="text-white/80 text-sm">Continue drawing even without an internet connection and sync when back online</p>
+                </div>
+                <div className="bg-[#1a002a]/70 backdrop-blur-md border border-purple-900/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300">
+                  <h3 className="text-white text-lg font-semibold mb-2">Advanced Tools</h3>
+                  <p className="text-white/80 text-sm">Access additional drawing tools and customization options exclusive to the desktop version</p>
+                </div>
+              </div>
+              
+              {/* Download Button */}
+              <div className="flex justify-center space-x-4">
+                <a
+                  href="/downloads/DrawWave-Setup.exe"
+                  download
+                  className="inline-flex items-center px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/30"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download for Windows
+                </a>
+                <a
+                  href="#"
+                  onClick={() => window.location.href = '/desktop'}
+                  className="inline-flex items-center px-6 py-3 rounded-lg border border-purple-500/50 text-white font-medium hover:bg-purple-500/10 transition-all duration-300"
+                >
+                  Learn More
+                </a>
+              </div>
+            </div>
           </div>
           
           {/* Demo Video Section */}
