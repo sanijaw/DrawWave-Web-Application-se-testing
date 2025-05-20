@@ -64,7 +64,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             # Login to Docker Hub to pull images
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
             
             # Pull the latest images
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:latest
@@ -73,7 +73,7 @@ jobs:
             
             # Create backend .env file from GitHub secrets
             mkdir -p ~/drawwave/backend
-            cat > ~/drawwave/backend/.env << 'EOL'
+            cat > ~/drawwave/backend/.env << EOL
             MONGODB_URI=${{ secrets.MONGODB_URI }}
             PORT=5000
             
@@ -91,14 +91,17 @@ jobs:
             FRONTEND_URL=http://${{ secrets.VPS_HOST }}
             EOL
             
-            # Create docker-compose.yml if it doesn't exist
+            # Create docker-compose.yml file
             mkdir -p ~/drawwave
-            cat > ~/drawwave/docker-compose.yml << 'EOL'
+            export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+            export VPS_HOST="${{ secrets.VPS_HOST }}"
+            
+            cat > ~/drawwave/docker-compose.yml << EOL
             version: '3.8'
             
             services:
               frontend:
-                image: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:latest
+                image: ${DOCKERHUB_USERNAME}/drawwave-frontend:latest
                 restart: unless-stopped
                 ports:
                   - "80:80"
@@ -108,7 +111,7 @@ jobs:
                   - VITE_API_URL=http://${VPS_HOST}:5000/api
             
               backend:
-                image: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-backend:latest
+                image: ${DOCKERHUB_USERNAME}/drawwave-backend:latest
                 restart: unless-stopped
                 ports:
                   - "5000:5000"
@@ -120,7 +123,7 @@ jobs:
                   - mongo
             
               python:
-                image: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-python:latest
+                image: ${DOCKERHUB_USERNAME}/drawwave-python:latest
                 restart: unless-stopped
                 ports:
                   - "8765:8765"
@@ -139,8 +142,6 @@ jobs:
             
             # Stop any running containers and start fresh with our updated images
             cd ~/drawwave
-            export VPS_HOST=${{ secrets.VPS_HOST }}
-            export SESSION_SECRET=${{ secrets.SESSION_SECRET }}
             docker-compose down
             docker-compose up -d
             
