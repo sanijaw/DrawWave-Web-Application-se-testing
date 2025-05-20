@@ -64,7 +64,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             # Login to Docker Hub to pull images
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+            
             
             # Pull the latest images
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:latest
