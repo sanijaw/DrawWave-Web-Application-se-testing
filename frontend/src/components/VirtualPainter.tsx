@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReconnectionHandler from './ReconnectionHandler';
 import { useAuth } from '../contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Interface for DrawAction to track drawing history
 interface DrawAction {
@@ -18,6 +19,9 @@ interface VirtualPainterProps {
 const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) => {
   // Get auth context to access user information
   const { user, isAuthenticated } = useAuth();
+  
+  // State for gesture guide popup
+  const [isGestureGuideOpen, setIsGestureGuideOpen] = useState<boolean>(false);
   
   // State for hand cursor tracking
   const [cursorPosition, setCursorPosition] = useState<{x: number, y: number} | null>(null);
@@ -1805,62 +1809,92 @@ const handleMouseLeave = () => {
             </div>
           </div>
           
-          <div className={`mt-4 sm:mt-6 flex flex-wrap justify-center gap-2 sm:gap-4 ${isFullscreen ? 'max-w-5xl mx-auto' : ''}`}>
-            <button 
-              onClick={handleClearCanvas}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200"
-            >
-              Clear Canvas
-            </button>
-            <button 
-              onClick={toggleMouseDrawing}
-              className={`${isMouseDrawing ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'} text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200`}
-            >
-              {isMouseDrawing ? 'Mouse Drawing: ON' : 'Mouse Drawing: OFF'}
-            </button>
-            <button 
-              onClick={handleUndo}
-              disabled={drawHistory.length === 0}
-              className={`${drawHistory.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'} text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200`}
-            >
-              Undo (Ctrl+Z)
-            </button>
-            <button 
-              onClick={() => {
-                if (wsConnection) {
-                  console.log('Testing reconnection by closing the WebSocket');
-                  wsConnection.close();
-                }
-              }}
-              className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-3 sm:px-4 rounded text-sm sm:text-base transition-colors duration-200"
-            >
-              Test Reconnection
-            </button>
-            
-            <div className="flex items-center">
-              <label htmlFor="colorPicker" className="mr-2 text-sm sm:text-base">Color:</label>
-              <input 
-                id="colorPicker"
-                type="color"
-                value={selectedColor}
-                onChange={handleColorChange}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded cursor-pointer"
-              />
-            </div>
-            
-            <div className="flex items-center gap-1 sm:gap-2">
-              <label htmlFor="frameRate" className="text-gray-700 text-sm sm:text-base">FPS:</label>
-              <select
-                id="frameRate"
-                value={frameRate}
-                onChange={(e) => setFrameRate(Number(e.target.value))}
-                className="border rounded px-1 sm:px-2 py-1 text-sm sm:text-base"
-              >
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="20">20</option>
-                <option value="30">30</option>
-              </select>
+          {/* Redesigned Control Panel */}
+          <div className="mt-6 sm:mt-8">
+            {/* Main Controls */}
+            <div className="bg-gradient-to-r from-slate-800/90 via-slate-900 to-slate-800/90 backdrop-blur-sm rounded-xl p-3 max-w-fit mx-auto shadow-xl border border-slate-700">
+              <div className="flex items-center justify-center space-x-2 sm:space-x-3">
+                {/* Clear Canvas */}
+                <button 
+                  onClick={handleClearCanvas}
+                  className="bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-medium py-2 px-3 rounded-lg text-sm shadow-lg shadow-rose-500/20 transition-all duration-300 transform hover:scale-105 flex items-center gap-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v1h10V3a1 1 0 112 0v1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2V3a1 1 0 011-1zm.707 4.293a1 1 0 00-1.414 1.414L8.586 13l-1.293 1.293a1 1 0 101.414 1.414L13 11.414l1.293 1.293a1 1 0 001.414-1.414l-1.293-1.293 1.293-1.293a1 1 0 00-1.414-1.414L13 8.586l-4.293-4.293z" clipRule="evenodd" />
+                  </svg>
+                  <span>Clear Canvas</span>
+                </button>
+                
+                {/* Mouse Drawing Toggle */}
+                <button 
+                  onClick={toggleMouseDrawing}
+                  className={`${isMouseDrawing ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-emerald-500/20' : 'bg-gradient-to-br from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 shadow-slate-500/20'} text-white font-medium py-2 px-3 rounded-lg text-sm shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-1`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>Mouse: {isMouseDrawing ? 'ON' : 'OFF'}</span>
+                </button>
+                
+                {/* Undo Button */}
+                <button 
+                  onClick={handleUndo}
+                  disabled={drawHistory.length === 0}
+                  className={`${drawHistory.length === 0 ? 'bg-slate-400 cursor-not-allowed opacity-60' : 'bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-indigo-500/20'} text-white font-medium py-2 px-3 rounded-lg text-sm shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-1`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                  </svg>
+                  <span>Undo</span>
+                </button>
+                
+                {/* Color Picker */}
+                <div className="flex items-center bg-slate-700/50 rounded-lg px-2 py-1.5 border border-slate-600">
+                  <label htmlFor="colorPicker" className="text-slate-300 mr-1.5 text-sm">Color:</label>
+                  <div className="relative">
+                    <input 
+                      id="colorPicker"
+                      type="color"
+                      value={selectedColor}
+                      onChange={handleColorChange}
+                      className="w-7 h-7 rounded-md cursor-pointer opacity-0 absolute inset-0 z-10"
+                    />
+                    <div className="w-7 h-7 rounded-md" style={{ backgroundColor: selectedColor, boxShadow: `0 0 10px ${selectedColor}` }}></div>
+                  </div>
+                </div>
+                
+                {/* FPS Selector */}
+                <div className="flex items-center bg-slate-700/50 rounded-lg px-3 py-1.5 border border-slate-600">
+                  <label htmlFor="frameRate" className="text-slate-300 mr-1.5 text-sm">FPS:</label>
+                  <select
+                    id="frameRate"
+                    value={frameRate}
+                    onChange={(e) => setFrameRate(Number(e.target.value))}
+                    className="bg-slate-800 text-white border border-slate-600 rounded-md px-0 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 w-12"
+                  >
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                  </select>
+                </div>
+                
+                {/* Test Reconnection */}
+                <button 
+                  onClick={() => {
+                    if (wsConnection) {
+                      console.log('Testing reconnection by closing the WebSocket');
+                      wsConnection.close();
+                    }
+                  }}
+                  className="bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium py-2 px-3 rounded-lg text-sm shadow-lg shadow-amber-500/20 transition-all duration-300 transform hover:scale-105 flex items-center gap-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                  </svg>
+                  <span>Test Reconnection</span>
+                </button>
+              </div>
             </div>
           </div>
           
@@ -1873,15 +1907,188 @@ const handleMouseLeave = () => {
             </div>
           )}
           
-          <div className="mt-6 sm:mt-8 bg-blue-50 p-3 sm:p-4 rounded-lg shadow-inner max-w-3xl mx-auto w-full">
-            <h2 className="text-lg sm:text-xl font-semibold text-indigo-700 mb-2">Gesture Guide:</h2>
-            <ul className="list-disc pl-5 space-y-1 text-gray-700 text-sm sm:text-base">
-              <li>✏️ <strong>Draw:</strong> Extend index finger only</li>
-              <li>🧽 <strong>Erase:</strong> Extend index and middle fingers</li>
-              <li>↩️ <strong>Undo:</strong> Show all five fingers</li>
-              <li>✋ <strong>Stop Drawing:</strong> Show fist or other gestures</li>
-            </ul>
+          {/* Gesture Guide button */}
+          <div className="mt-8 sm:mt-10 flex justify-center">
+            <button
+              onClick={() => setIsGestureGuideOpen(true)}
+              className="flex items-center gap-3 bg-gradient-to-r from-violet-600 to-indigo-700 text-white px-6 py-3 rounded-full shadow-lg shadow-indigo-500/20 hover:shadow-xl transform hover:scale-105 transition-all duration-300 font-medium"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+              </svg>
+              <span>Gesture Guide</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1z" />
+              </svg>
+            </button>
           </div>
+          
+          {/* Animated Gesture Guide Popup */}
+          <AnimatePresence>
+            {isGestureGuideOpen && (
+              <motion.div 
+                className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsGestureGuideOpen(false)}
+              >
+                <motion.div 
+                  className="bg-slate-900 rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full border border-slate-700"
+                  onClick={(e) => e.stopPropagation()}
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                >
+                  <div className="bg-gradient-to-r from-violet-900 via-indigo-800 to-violet-900 p-6 text-white relative">
+                    <div className="flex items-center gap-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                      </svg>
+                      <div>
+                        <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 to-purple-200">Hand Gesture Guide</h2>
+                        <p className="text-indigo-300 text-sm">Master these gestures to control DrawWave</p>
+                      </div>
+                    </div>
+                    <button 
+                      className="absolute top-4 right-4 text-indigo-300 hover:text-white transition-colors rounded-full p-1 hover:bg-indigo-800/50"
+                      onClick={() => setIsGestureGuideOpen(false)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Draw Gesture */}
+                    <motion.div 
+                      className="bg-gradient-to-br from-slate-800 to-slate-700 p-5 rounded-xl border border-slate-600 flex items-center gap-4 group"
+                      whileHover={{ scale: 1.03, y: -5 }}
+                      transition={{ type: 'spring', stiffness: 300 }}
+                    >
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <motion.div 
+                          className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40"
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                        >
+                          <span className="text-2xl">✏️</span>
+                        </motion.div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-indigo-300 transition-colors">Draw</h3>
+                        <p className="text-slate-400 text-sm">Extend index finger only</p>
+                        <motion.div 
+                          className="mt-2 h-1 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: '100%' }}
+                          transition={{ duration: 1 }}
+                        />
+                      </div>
+                    </motion.div>
+                    
+                    {/* Mouse Draw */}
+                    <motion.div 
+                      className="bg-gradient-to-br from-slate-800 to-slate-700 p-5 rounded-xl border border-slate-600 flex items-center gap-4 group"
+                      whileHover={{ scale: 1.03, y: -5 }}
+                      transition={{ type: 'spring', stiffness: 300 }}
+                    >
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <motion.div 
+                          className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40"
+                          animate={{ rotate: [0, 15, 0, -15, 0] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" clipRule="evenodd" />
+                          </svg>
+                        </motion.div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-emerald-300 transition-colors">Mouse Draw</h3>
+                        <p className="text-slate-400 text-sm">Click the Mouse draw option</p>
+                        <motion.div 
+                          className="mt-2 h-1 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: '100%' }}
+                          transition={{ duration: 1, delay: 0.2 }}
+                        />
+                      </div>
+                    </motion.div>
+                    
+                    {/* Undo Gesture */}
+                    <motion.div 
+                      className="bg-gradient-to-br from-slate-800 to-slate-700 p-5 rounded-xl border border-slate-600 flex items-center gap-4 group"
+                      whileHover={{ scale: 1.03, y: -5 }}
+                      transition={{ type: 'spring', stiffness: 300 }}
+                    >
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <motion.div 
+                          className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:shadow-amber-500/40"
+                          animate={{ 
+                            rotate: [0, 360],
+                          }}
+                          transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+                        >
+                          <span className="text-2xl">↩️</span>
+                        </motion.div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-amber-300 transition-colors">Undo</h3>
+                        <p className="text-slate-400 text-sm">Show all five fingers</p>
+                        <motion.div 
+                          className="mt-2 h-1 bg-gradient-to-r from-amber-600 to-orange-600 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: '100%' }}
+                          transition={{ duration: 1, delay: 0.4 }}
+                        />
+                      </div>
+                    </motion.div>
+                    
+                    {/* Stop Drawing Gesture */}
+                    <motion.div 
+                      className="bg-gradient-to-br from-slate-800 to-slate-700 p-5 rounded-xl border border-slate-600 flex items-center gap-4 group"
+                      whileHover={{ scale: 1.03, y: -5 }}
+                      transition={{ type: 'spring', stiffness: 300 }}
+                    >
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <motion.div 
+                          className="absolute inset-0 bg-gradient-to-br from-rose-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 group-hover:shadow-rose-500/40"
+                          animate={{ scale: [1, 0.9, 1] }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                        >
+                          <span className="text-2xl">✋</span>
+                        </motion.div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-rose-300 transition-colors">Stop Drawing</h3>
+                        <p className="text-slate-400 text-sm">Show fist or other gestures</p>
+                        <motion.div 
+                          className="mt-2 h-1 bg-gradient-to-r from-rose-600 to-pink-600 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: '100%' }}
+                          transition={{ duration: 1, delay: 0.6 }}
+                        />
+                      </div>
+                    </motion.div>
+                  </div>
+                  
+                  <div className="p-5 bg-slate-800/50 border-t border-slate-700 text-center">
+                    <motion.button
+                      className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white px-8 py-3 rounded-full font-medium shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-shadow"
+                      onClick={() => setIsGestureGuideOpen(false)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Got it!
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </div>
