@@ -165,6 +165,14 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     
     setIsMouseDrawing(newValue);
     
+    // Reset prevPoint to prevent connecting lines between modes
+    setPrevPoint(null);
+    
+    // Ensure any ongoing drawing is stopped
+    if (isDrawing) {
+      stopDrawing();
+    }
+    
     // If mouse drawing is turned on, pause the video processing to stop gesture drawing
     if (newValue && videoRef.current) {
       const videoStream = videoRef.current.srcObject as MediaStream;
