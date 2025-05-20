@@ -585,8 +585,36 @@ class WebSocketServer:
                     "point": {"x": midpoint[0], "y": midpoint[1]}
                 })))
 
-        elif gesture == "idle" or gesture == "undo":
-            # When returning to idle or doing undo after drawing/erasing, send a completion signal
+        elif gesture == "undo":
+            # When the undo gesture is detected, send an undo action to the frontend
+            if websocket and session_id:
+                # First complete any ongoing drawing/erasing action
+                if prev_gesture in ["drawing", "erase"]:
+                    print(f"Completing gesture: {prev_gesture} -> {gesture}")
+                    asyncio.create_task(websocket.send(json.dumps({
+                        "type": "gesture_complete",
+                        "previous": prev_gesture
+                    })))
+                
+                # Send the undo action signal
+                print(f"Sending undo gesture action")
+                asyncio.create_task(websocket.send(json.dumps({
+                    "type": "gesture_action",
+                    "action": "undo"
+                })))
+                
+                # Also broadcast to all other clients in the session
+                undo_message = json.dumps({
+                    "type": "gesture_action",
+                    "action": "undo"
+                })
+                asyncio.create_task(self.broadcast_to_session(session_id, undo_message, exclude=websocket))
+        
+            # Always reset previous points when entering undo mode
+            canvas.reset_previous_points()
+    
+        elif gesture == "idle":
+            # When returning to idle after drawing/erasing, send a completion signal
             if prev_gesture in ["drawing", "erase"] and websocket and session_id:
                 print(f"Completing gesture: {prev_gesture} -> {gesture}")
                 asyncio.create_task(websocket.send(json.dumps({
@@ -594,7 +622,7 @@ class WebSocketServer:
                     "previous": prev_gesture
                 })))
             
-            # Always reset previous points when entering idle or undo mode
+            # Reset previous points when entering idle mode
             canvas.reset_previous_points()
         
         # Update the previous gesture

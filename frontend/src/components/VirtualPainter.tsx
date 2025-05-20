@@ -319,6 +319,9 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     }
   };
   
+  // State to show undo feedback animation
+  const [showUndoFeedback, setShowUndoFeedback] = useState<boolean>(false);
+
   // Handle undo action
   const handleUndo = useCallback(() => {
     // Prevent rapid multiple undos by enforcing a minimum time between undos (300ms)
@@ -335,6 +338,10 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     }
     
     console.log('Performing undo operation');
+    
+    // Show visual feedback for undo action
+    setShowUndoFeedback(true);
+    setTimeout(() => setShowUndoFeedback(false), 1000); // Hide after 1 second
     
     // Remove the last action from history
     const newHistory = [...drawHistory];
@@ -584,7 +591,7 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
         const data = JSON.parse(event.data);
         console.log('Received WebSocket message:', data.type);
         
-        // Handle various gesture-related message types
+        // Various gesture-related message types are handled outside the switch
         if (data.type === "hand_position") {
           // Update cursor position with smoothing
           setCursorPosition(prevPos => {
@@ -637,6 +644,7 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
           return; // Process this separately from the switch
         } else if (data.type === "gesture_start") {
           // Server signals the start of a new gesture (drawing or erasing)
+          console.log('Received gesture_start:', data.gesture);
           if (data.gesture === "drawing") {
             // If we were already drawing, ensure we stop first to create a gap
             if (isDrawing) {
@@ -649,8 +657,31 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
           return; // Process separately
         } else if (data.type === "gesture_complete") {
           // Server signals the end of a gesture
+          console.log('Received gesture_complete for:', data.previous);
           if (data.previous === "drawing" && isDrawing) {
             stopDrawing();
+          }
+          return; // Process separately
+        } else if (data.type === "gesture_point") {
+          // Server is sending individual points for a gesture
+          console.log('Received gesture_point:', data.gesture, data.point);
+          if (data.gesture === "drawing") {
+            if (!isDrawing) {
+              // If we weren't already drawing, start a new drawing action
+              startDrawing(data.point.x, data.point.y);
+            } else {
+              // Continue the current drawing
+              draw(data.point.x, data.point.y);
+            }
+          } else if (data.gesture === "erase") {
+            // Handle eraser points if implemented
+          }
+          return; // Process separately
+        } else if (data.type === "gesture_action") {
+          // Server signals a gesture action like undo
+          console.log('Received gesture_action:', data.action);
+          if (data.action === "undo") {
+            handleUndo();
           }
           return; // Process separately
         }
@@ -717,6 +748,20 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
             localStorage.setItem('drawwave_roomId', data.room_id);
             localStorage.setItem('drawwave_inSession', 'true');
             localStorage.setItem('drawwave_userName', userName);
+            
+            // Load drawing history from localStorage for this session
+            try {
+              const savedHistory = localStorage.getItem(`drawwave_history_${data.session_id}`);
+              if (savedHistory) {
+                const parsedHistory = JSON.parse(savedHistory) as DrawAction[];
+                if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+                  console.log(`Restored ${parsedHistory.length} drawing actions from localStorage`);
+                  setDrawHistory(parsedHistory);
+                }
+              }
+            } catch (error) {
+              console.error('Error restoring drawing history from localStorage:', error);
+            }
             
             // Notify App component about session state change
             if (onSessionUpdate) {
@@ -1824,12 +1869,22 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
             </div>
           </div>
           
+          {/* Visual feedback for undo operation */}
+          {showUndoFeedback && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+              <div className="bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg text-xl font-bold animate-bounce">
+                Undo! 🔄
+              </div>
+            </div>
+          )}
+          
           <div className="mt-6 sm:mt-8 bg-blue-50 p-3 sm:p-4 rounded-lg shadow-inner max-w-3xl mx-auto w-full">
             <h2 className="text-lg sm:text-xl font-semibold text-indigo-700 mb-2">Gesture Guide:</h2>
             <ul className="list-disc pl-5 space-y-1 text-gray-700 text-sm sm:text-base">
               <li>✏️ <strong>Draw:</strong> Extend index finger only</li>
               <li>🧽 <strong>Erase:</strong> Extend index and middle fingers</li>
-              <li>✋ <strong>Stop Drawing:</strong> Show all five fingers</li>
+              <li>↩️ <strong>Undo:</strong> Show all five fingers</li>
+              <li>✋ <strong>Stop Drawing:</strong> Show fist or other gestures</li>
             </ul>
           </div>
         </div>
