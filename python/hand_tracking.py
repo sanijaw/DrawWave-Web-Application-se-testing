@@ -30,22 +30,33 @@ class HandTracker:
                 self.mp_drawing.draw_landmarks(image, landmarks, self.mp_hands.HAND_CONNECTIONS)
         return image, result
 
+    def get_index_finger_position(self, landmarks):
+        """Extract the position of the index finger tip from landmarks"""
+        if landmarks:
+            index_tip = landmarks.landmark[self.mp_hands.HandLandmark.INDEX_FINGER_TIP]
+            # Return normalized coordinates (0-1)
+            return (index_tip.x, index_tip.y)
+        return None
+
     def process_frame(self, image):
-        """Process a frame and return the processed image, detected landmarks, and recognized gesture"""
+        """Process a frame and return the processed image, detected landmarks, recognized gesture, and index finger position"""
         # First detect hands in the image
         processed_image, result = self.detect_hands(image)
         
-        # Get the first hand landmarks if detected
+        # Extract landmarks if hands were detected
         landmarks = None
+        index_position = None
         if result.multi_hand_landmarks:
             landmarks = result.multi_hand_landmarks[0]
+            if landmarks:
+                index_position = self.get_index_finger_position(landmarks)
         
         # Recognize the gesture based on the landmarks
         gesture = "idle"
         if landmarks:
             gesture = self.recognize_gesture(landmarks)
             
-        return processed_image, landmarks, gesture
+        return processed_image, landmarks, gesture, index_position
         
     def recognize_gesture(self, landmarks):
         if landmarks:
@@ -72,7 +83,21 @@ class HandTracker:
             thumb_down = tips["thumb"].y > bases["thumb"].y
             ring_down = tips["ring"].y > bases["ring"].y
             pinky_down = tips["pinky"].y > bases["pinky"].y
-
+            
+            # Calculate distance between index and middle fingertips
+            index_tip = tips["index"]
+            middle_tip = tips["middle"]
+            
+            # Calculate Euclidean distance between index and middle finger tips
+            # Convert to 3D coordinates for more accurate distance measurement
+            index_pos = (index_tip.x, index_tip.y, index_tip.z)
+            middle_pos = (middle_tip.x, middle_tip.y, middle_tip.z)
+            
+            # Calculate distance
+            tip_distance = ((index_pos[0] - middle_pos[0])**2 + 
+                           (index_pos[1] - middle_pos[1])**2 + 
+                           (index_pos[2] - middle_pos[2])**2)**0.5
+            
             # 🖊️ Drawing: Only index up
             if index_up and not middle_up and thumb_down and ring_down and pinky_down:
                 return "drawing"
@@ -81,8 +106,10 @@ class HandTracker:
             if index_up and middle_up and thumb_down and ring_down and pinky_down:
                 return "erase"
 
-            # ✋ Idle: all fingers up
+            # ↩️ Undo: All fingers up
             if index_up and middle_up and not thumb_down and not ring_down and not pinky_down:
-                return "idle"
+                return "undo"
+                
+            # Idle: We'll default to idle for any unrecognized gestures
 
         return "drawing"

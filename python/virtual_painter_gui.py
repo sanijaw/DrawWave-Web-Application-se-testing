@@ -50,6 +50,12 @@ class VirtualPainterGUI(QWidget):
         self.canvas = Canvas()
         self.mode = "gesture"
         
+        # Initialize cursor position for tracking
+        self.cursor_x = 0
+        self.cursor_y = 0
+        self.cursor_visible = False
+        self.cursor_mode = "IDLE"
+        
         # Main layout
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
@@ -159,41 +165,64 @@ class VirtualPainterGUI(QWidget):
     # Keep existing functional methods unchanged below...
     # (update_camera_feed, handle_gesture, back_button_click, etc.)
     def update_camera_feed(self):
-        
         if self.mode != "gesture":
             return  # Skip camera/gesture when not in gesture mode
         
+        if not self.capture or not self.capture.isOpened():
+            return
+        
         ret, frame = self.capture.read()
-        print("Camera working?", ret)
         if not ret:
             print("❌ Could not access the webcam.")
             return
         
-        print("[INFO] Camera frame captured.")
+        frame = cv2.flip(frame, 1)  # Mirror the image for intuitive interaction
+        frame, result = self.hand_tracker.detect_hands(frame)
+
+        # Process hand gestures if any landmarks are detected
+        if result.multi_hand_landmarks:
+            landmarks = result.multi_hand_landmarks[0]
+            gesture = self.hand_tracker.recognize_gesture(landmarks)
+            
+            # Update cursor position to track index finger tip
+            index_tip = landmarks.landmark[8]
+            
+            # Set cursor position in window coordinates
+            self.cursor_x = int(index_tip.x * self.canvas.width)
+            self.cursor_y = int(index_tip.y * self.canvas.height)
+            self.cursor_visible = True
+            
+            # Update cursor color based on gesture
+            if gesture == "drawing":
+                self.cursor_mode = "DRAW"
+            elif gesture == "erase":
+                self.cursor_mode = "ERASE"
+            elif gesture == "clear":
+                self.cursor_mode = "CLEAR"
+            else:
+                self.cursor_mode = "IDLE"
+            
+            # Print debug information
+            print(f"Cursor position: ({self.cursor_x}, {self.cursor_y}) Mode: {self.cursor_mode}")
+            
+            # Process the gesture
+            self.handle_gesture(gesture, landmarks)
+        else:
+            # If no hand detected, hide cursor
+            self.cursor_visible = False
         
-        if ret:
-            frame = cv2.flip(frame, 1)  # Mirror the image
-            frame, result = self.hand_tracker.detect_hands(frame)
+        # Draw cursor directly on canvas widget
+        self.canvas_widget.set_cursor(self.cursor_x, self.cursor_y, self.cursor_visible, self.cursor_mode)
+        
+        # Always force the canvas widget to update
+        self.canvas_widget.update()
 
-            # Process hand gestures if any landmarks are detected
-            if result.multi_hand_landmarks:
-                print("[INFO] Hand detected.")
-                landmarks = result.multi_hand_landmarks[0]
-                gesture = self.hand_tracker.recognize_gesture(landmarks)
-                self.handle_gesture(gesture, landmarks)
-                
-            if not hasattr(self, "_frame_counter"):
-                self._frame_counter = 0
-            self._frame_counter += 1
-            if self._frame_counter % 5 == 0:  # Redraw ~13 FPS
-                self.canvas_widget.update()    
-
-            # Convert the frame to a format suitable for displaying in PyQt
-            height, width, channel = frame.shape
-            bytes_per_line = 3 * width
-            q_img = QImage(frame.data, width, height, bytes_per_line, QImage.Format_BGR888)
-            pixmap = QPixmap.fromImage(q_img)
-            self.camera_feed_label.setPixmap(pixmap)
+        # Convert the frame to a format suitable for displaying in PyQt
+        height, width, channel = frame.shape
+        bytes_per_line = 3 * width
+        q_img = QImage(frame.data, width, height, bytes_per_line, QImage.Format_BGR888)
+        pixmap = QPixmap.fromImage(q_img)
+        self.camera_feed_label.setPixmap(pixmap)
             
             
             

@@ -352,9 +352,21 @@ class WebSocketServer:
                                     continue
                                 
                                 # Process the frame with hand tracking
-                                frame, landmarks, gesture = self.hand_tracker.process_frame(frame)
+                                # Now receiving index_position as well
+                                frame, landmarks, gesture, index_position = self.hand_tracker.process_frame(frame)
                                 
                                 if landmarks:
+                                    # Send cursor position to client if index finger is detected
+                                    if index_position:
+                                        await websocket.send(json.dumps({
+                                            "type": "hand_position",
+                                            "position": {
+                                                "x": index_position[0],  # x coordinate (0-1)
+                                                "y": index_position[1]   # y coordinate (0-1)
+                                            },
+                                            "mode": gesture
+                                        }))
+                                    
                                     # Get the Canvas instance from the session
                                     canvas = self.sessions[session_id]["canvas"]
                                     

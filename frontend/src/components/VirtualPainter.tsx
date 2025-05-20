@@ -19,6 +19,13 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
   // Get auth context to access user information
   const { user, isAuthenticated } = useAuth();
   
+  // State for hand cursor tracking
+  const [cursorPosition, setCursorPosition] = useState<{x: number, y: number} | null>(null);
+  const [cursorMode, setCursorMode] = useState<string>('idle');
+  const cursorCanvasRef = useRef<HTMLCanvasElement>(null); // Dedicated canvas for cursor
+  const cursorPulseRef = useRef<number>(0); // For cursor pulsing animation
+  const cursorAnimationRef = useRef<number | null>(null); // For animation frame
+  
   // Set username from auth context when user is authenticated
   useEffect(() => {
     if (isAuthenticated && user && user.name) {
@@ -72,6 +79,9 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
   // Drawing history for undo functionality
   const [drawHistory, setDrawHistory] = useState<DrawAction[]>([]);
   const [currentDrawAction, setCurrentDrawAction] = useState<{points: {x: number, y: number}[], type: 'draw' | 'erase'} | null>(null);
+  
+  // Track last undo time to prevent rapid multiple undos
+  const lastUndoTimeRef = useRef<number>(0);
 
   // UI state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -261,7 +271,20 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
   
   // Handle undo action
   const handleUndo = useCallback(() => {
-    if (drawHistory.length === 0) return;
+    // Prevent rapid multiple undos by enforcing a minimum time between undos (300ms)
+    const now = Date.now();
+    if (now - lastUndoTimeRef.current < 300) {
+      console.log('Undo throttled');
+      return;
+    }
+    lastUndoTimeRef.current = now;
+    
+    if (drawHistory.length === 0) {
+      console.log('Nothing to undo');
+      return;
+    }
+    
+    console.log('Performing undo operation');
     
     // Remove the last action from history
     const newHistory = [...drawHistory];
@@ -270,6 +293,14 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     
     // Update localStorage
     localStorage.setItem(`drawwave_history_${sessionId}`, JSON.stringify(newHistory));
+    
+    // If connected to a session, broadcast the undo to others
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN && sessionId) {
+      wsConnection.send(JSON.stringify({
+        type: 'undo_action',
+        session_id: sessionId
+      }));
+    }
     
     // Redraw canvas from scratch based on remaining history
     const drawingCanvas = drawingCanvasRef.current;
@@ -494,6 +525,24 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
         const data = JSON.parse(event.data);
         console.log('Received WebSocket message:', data.type);
         
+        // Handle hand position updates for cursor
+        if (data.type === "hand_position") {
+          // Update cursor position with smoothing
+          setCursorPosition(prevPos => {
+            // If first position, just use the new position
+            if (!prevPos) return data.position;
+            
+            // Apply smoothing - 70% previous position, 30% new position for more natural movement
+            return {
+              x: prevPos.x * 0.7 + data.position.x * 0.3,
+              y: prevPos.y * 0.7 + data.position.y * 0.3
+            };
+          });
+          
+          setCursorMode(data.mode);
+          return; // Process this separately from the switch
+        }
+        
         // Handle different message types
         switch(data.type) {
           case 'error':
@@ -639,6 +688,15 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
             }
             break;
             
+          // Process gesture-based undo action
+          case 'gesture_action':
+            if (data.action === 'undo') {
+              console.log('Received undo gesture action from backend');
+              // Trigger the undo action
+              handleUndo();
+            }
+            break;
+            
           default:
             console.log('Unhandled message type:', data.type);
             break;
@@ -698,6 +756,137 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     reconnectTimeoutsRef.current.push(timeoutId);
   }, [reconnectAttempts, maxReconnectAttempts, connectWebSocket]);
 
+  // Function to render cursor on the cursor canvas
+  const renderCursor = useCallback(() => {
+    const canvas = cursorCanvasRef.current;
+    if (!canvas || !cursorPosition) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Clear previous cursor
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Calculate pixel coordinates from normalized coordinates
+    const x = cursorPosition.x * canvas.width;
+    const y = cursorPosition.y * canvas.height;
+    
+    // Update cursor pulse value (0-1-0 oscillation for animation)
+    cursorPulseRef.current += 0.05;
+    if (cursorPulseRef.current > 1) cursorPulseRef.current = 0;
+    
+    // Pulse size effect - make cursor slightly grow and shrink
+    const pulse = Math.sin(cursorPulseRef.current * Math.PI) * 3;
+    
+    // Draw different cursor styles based on mode
+    ctx.save();
+    
+    if (cursorMode === 'drawing') {
+      // Drawing cursor - blue circular cursor with crosshair
+      const baseSize = 15 + pulse;
+      
+      // Outer circle
+      ctx.beginPath();
+      ctx.arc(x, y, baseSize, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 165, 255, 0.4)';
+      ctx.fill();
+      
+      // Inner circle
+      ctx.beginPath();
+      ctx.arc(x, y, baseSize/2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 165, 255, 0.7)';
+      ctx.fill();
+      
+      // White border
+      ctx.beginPath();
+      ctx.arc(x, y, baseSize, 0, Math.PI * 2);
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Crosshair
+      ctx.beginPath();
+      ctx.moveTo(x - baseSize, y);
+      ctx.lineTo(x + baseSize, y);
+      ctx.moveTo(x, y - baseSize);
+      ctx.lineTo(x, y + baseSize);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      
+    } else if (cursorMode === 'erase') {
+      // Eraser cursor - larger red circular cursor
+      const baseSize = 25 + pulse;
+      
+      // Outer circle with transparency
+      ctx.beginPath();
+      ctx.arc(x, y, baseSize, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+      ctx.fill();
+      
+      // Inner circle
+      ctx.beginPath();
+      ctx.arc(x, y, baseSize/3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+      ctx.fill();
+      
+      // White border
+      ctx.beginPath();
+      ctx.arc(x, y, baseSize, 0, Math.PI * 2);
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Eraser symbol
+      ctx.font = '16px Arial';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✕', x, y);
+      
+    } else { 
+      // Idle cursor - neutral cursor with pulsing effect
+      const baseSize = 12 + pulse;
+      
+      // Main circle
+      ctx.beginPath();
+      ctx.arc(x, y, baseSize, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(100, 100, 255, 0.5)';
+      ctx.fill();
+      
+      // Inner dot
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(x, y, baseSize, 0, Math.PI * 2);
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+    
+    // Continue animation loop
+    cursorAnimationRef.current = requestAnimationFrame(renderCursor);
+  }, [cursorPosition, cursorMode]);
+  
+  // Start and stop cursor animation when position changes or component unmounts
+  useEffect(() => {
+    if (cursorPosition) {
+      renderCursor();
+    }
+    
+    return () => {
+      if (cursorAnimationRef.current) {
+        cancelAnimationFrame(cursorAnimationRef.current);
+      }
+    };
+  }, [cursorPosition, renderCursor]);
+
   useEffect(() => {
     return () => {
       if (wsConnection) {
@@ -711,6 +900,11 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
       // Clear any reconnection timeouts
       reconnectTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
       reconnectTimeoutsRef.current = [];
+      
+      // Also clean up cursor animation
+      if (cursorAnimationRef.current) {
+        cancelAnimationFrame(cursorAnimationRef.current);
+      }
     };
   }, [inSession, sessionId, userName]);
 
@@ -1446,6 +1640,13 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseLeave}
+                ></canvas>
+                <canvas 
+                  ref={cursorCanvasRef}
+                  width={640}
+                  height={480}
+                  className="w-full h-auto"
+                  style={{position: 'absolute', top: 0, left: 0, zIndex: 20, backgroundColor: 'transparent', pointerEvents: 'none'}}
                 ></canvas>
                 <div style={{position: 'relative', width: '100%', paddingTop: '75%'}}></div>
               </div>
