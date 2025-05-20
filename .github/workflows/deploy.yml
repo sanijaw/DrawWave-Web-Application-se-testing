@@ -127,7 +127,7 @@ jobs:
                 environment:
                   - VITE_WEBSOCKET_URL=ws://${VPS_HOST}:8765
                   - VITE_WEBCAM_WEBSOCKET_URL=ws://${VPS_HOST}:8080
-                  - VITE_API_URL=https://api.drawwave.space/:5000/api
+                  - VITE_API_URL=https://api.drawwave.space/api
             
               backend:
                 image: yevinraizel/drawwave-backend:latest
