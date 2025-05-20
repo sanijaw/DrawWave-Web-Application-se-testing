@@ -31,7 +31,7 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-frontend:latest
+          tags: yevinraizel/drawwave-frontend:latest
           
 
       # Build and push Backend Docker image
@@ -41,7 +41,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-backend:latest
+          tags: yevinraizel/drawwave-backend:latest
           
 
       # Build and push Python Docker image
@@ -51,7 +51,7 @@ jobs:
           context: ./python
           file: ./python/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drawwave-python:latest
+          tags: yevinraizel/drawwave-python:latest
        
 
       # Deploy to VPS using SSH
