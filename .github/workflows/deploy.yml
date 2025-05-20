@@ -134,10 +134,6 @@ jobs:
                 restart: unless-stopped
                 ports:
                   - "5000:5000"
-                volumes:
-                  - ~/drawwave/backend/.env:/app/.env
-                depends_on:
-                  - mongo
             
               python:
                 image: yevinraizel/drawwave-python:latest
