@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 const LoginButton = () => {
   const { isAuthenticated, user, login, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Handle click outside to close menu
@@ -28,11 +29,18 @@ const LoginButton = () => {
           className="flex items-center bg-[#2a0a44] hover:bg-[#3b1362] px-3 py-2 rounded-lg transition-all duration-200 focus:outline-none"
           aria-label="Open user menu"
         >
-          <img 
-            src={user.picture} 
-            alt={user.name} 
-            className="w-7 h-7 rounded-full mr-2 border border-purple-300/30" 
-          />
+          {!imageError ? (
+            <img 
+              src={user.picture} 
+              alt={user.name} 
+              className="w-7 h-7 rounded-full mr-2 border border-purple-300/30" 
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full mr-2 border border-purple-300/30 bg-purple-700 flex items-center justify-center text-white font-bold text-xs">
+              {user.name.charAt(0)}
+            </div>
+          )}
           <span className="text-white text-sm font-medium">Signed in as {user.name.split(' ')[0]}</span>
         </button>
         

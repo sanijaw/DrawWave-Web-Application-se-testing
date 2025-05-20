@@ -8,9 +8,10 @@ interface NavbarProps {
   sessionId?: string;
   onLeaveRoom: () => void;
   onDownloadCanvas?: () => void;
+  scrollToVideo?: () => void;
 }
 
-const Navbar = ({ inSession, sessionId, onLeaveRoom, onDownloadCanvas }: NavbarProps) => {
+const Navbar = ({ inSession, sessionId, onLeaveRoom, onDownloadCanvas, scrollToVideo }: NavbarProps) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const { theme, toggleTheme } = useTheme();
   
@@ -30,7 +31,18 @@ const Navbar = ({ inSession, sessionId, onLeaveRoom, onDownloadCanvas }: NavbarP
         {/* Logo on the left */}
         <div className="flex items-center">
           <div 
-            onClick={() => window.location.href = '/'}
+            onClick={() => {
+              if (inSession) {
+                // If in a session, just go home
+                window.location.href = '/';
+              } else if (scrollToVideo) {
+                // If on home page and scrollToVideo is provided, scroll to the video section
+                scrollToVideo();
+              } else {
+                // Fallback to home page redirect
+                window.location.href = '/';
+              }
+            }}
             className="transition-transform hover:scale-105 duration-200 cursor-pointer"
           >
             <h1 className="text-xl font-bold text-white">DrawWave</h1>

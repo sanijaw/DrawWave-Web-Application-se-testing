@@ -1,24 +1,3 @@
-# Node.js / Frontend specific
-node_modules/
-/.pnp
-.pnp.js
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.npm
-
-# Frontend build outputs
-/build
-/dist
-/.next/
-/out/
-/.nuxt/
-
-# Testing
-/coverage
-.nyc_output
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -164,15 +143,6 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# OAuth and sensitive credentials
-backend/google auth det.txt
-*.pem
-*.key
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
 # mkdocs documentation
 /site
 
@@ -189,14 +159,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-
-# IDE and Editor folders
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

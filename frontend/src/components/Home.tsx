@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import '../styles/HomeAnimations.css'; // Import the animations CSS file
 
 interface HomeProps {
   onStartRoom: () => void;
@@ -10,29 +11,58 @@ const Home = ({ onStartRoom }: HomeProps) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [autoplayVideo, setAutoplayVideo] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const demoSectionRef = useRef<HTMLDivElement>(null);
   const desktopSectionRef = useRef<HTMLDivElement>(null);
+  const videoSectionRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   
   // Get auth context to check user authentication status and user information
-  const { user, isAuthenticated, login } = useAuth();
+  const { user, isAuthenticated, login, logout } = useAuth();
   
   // Animation frames reference
   const animationFrameRef = useRef<number | null>(null);
   
-  // Function to scroll to demo section and autoplay video
+  // Handle clicks outside the profile menu to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Function to scroll to YouTube video and autoplay it
   const scrollToDemo = () => {
     // Set autoplay to true when View Demo is clicked
     setAutoplayVideo(true);
     
-    // Scroll to the demo section
-    if (demoSectionRef.current) {
-      demoSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    // Scroll to the YouTube video section
+    if (videoSectionRef.current) {
+      videoSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     } else {
+      // Fallback if video section reference is not available
       window.scrollTo({
-        top: window.innerHeight,
+        top: window.innerHeight * 2, // Scroll further down to where the video likely is
         behavior: 'smooth'
       });
+    }
+  };
+  
+  // Function to scroll to the YouTube video section
+  const scrollToVideo = () => {
+    // Set autoplay to true when scrolling to video
+    setAutoplayVideo(true);
+    
+    // Scroll to the video section
+    if (videoSectionRef.current) {
+      videoSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -145,6 +175,19 @@ const Home = ({ onStartRoom }: HomeProps) => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full relative overflow-hidden bg-black" style={{ pointerEvents: 'auto' }}>
+      {/* Floating button to quickly scroll to video */}
+      <button
+        onClick={scrollToVideo}
+        className="fixed right-5 bottom-5 z-50 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-3 rounded-full shadow-lg transform hover:scale-110 transition-all duration-300 group"
+        aria-label="Go to video"
+      >
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-[#a855f7]/20 to-[#8b5cf6]/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-300" data-component-name="Home"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+      
       {/* Authentication Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
@@ -166,27 +209,112 @@ const Home = ({ onStartRoom }: HomeProps) => {
         className="absolute inset-0 w-full h-full z-0"
         style={{ pointerEvents: 'none' }}
       />
-      
-      {/* Backdrop with grid lines and glow effects */}
-      <div className="absolute inset-0 bg-[#0a001a] z-10 overflow-hidden opacity-70" style={{ pointerEvents: 'none' }}>
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a002a] via-[#150025] to-[#0a001a] opacity-80"></div>
-        
-        {/* Horizontal grid lines */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: `
-            linear-gradient(to bottom, transparent 49px, rgba(168, 85, 247, 0.05) 50px, transparent 51px),
-            radial-gradient(circle at center, rgba(168, 85, 247, 0.1) 0%, transparent 70%)
-          `,
-          backgroundSize: '100% 50px, 100% 100%',
-        }}></div>
-        
-        {/* Vertical grid lines */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'linear-gradient(to right, transparent 49px, rgba(168, 85, 247, 0.05) 50px, transparent 51px)',
-          backgroundSize: '50px 100%',
-        }}></div>
-      </div>
+            {/* Enhanced 3D Backdrop with dynamic grid lines and glow effects */}
+        <div 
+          className="absolute inset-0 bg-[#0a001a] z-10 overflow-hidden opacity-70 scene-3d" 
+          style={{ 
+            pointerEvents: 'none',
+            perspective: '1500px',
+            transformStyle: 'preserve-3d',
+            '--mouse-x': '50%',
+            '--mouse-y': '50%',
+          } as React.CSSProperties}
+          onMouseMove={(e) => {
+            const el = e.currentTarget;
+            const x = e.clientX / window.innerWidth * 100;
+            const y = e.clientY / window.innerHeight * 100;
+            el.style.setProperty('--mouse-x', `${x}%`);
+            el.style.setProperty('--mouse-y', `${y}%`);
+          }}
+        >
+          {/* Dynamic lighting overlay that follows mouse position */}
+          <div className="lighting-overlay"></div>
+          
+          {/* Animated Gradient background */}
+          <div 
+            className="absolute inset-0 bg-gradient-to-br from-[#1a002a] via-[#150025] to-[#0a001a] opacity-80"
+            style={{
+              transform: `translateZ(-80px) rotateX(${Math.min(scrollY * 0.01, 5)}deg)`,
+              transition: 'transform 0.5s ease-out',
+              filter: `hue-rotate(${scrollY * 0.05}deg) brightness(${1 + scrollY * 0.0005})`,
+            }}
+          >
+            {/* Nebula effect */}
+            <div className="absolute inset-0 opacity-30" style={{
+              backgroundImage: `
+                radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.3) 0%, transparent 25%),
+                radial-gradient(circle at 80% 30%, rgba(99, 102, 241, 0.3) 0%, transparent 30%),
+                radial-gradient(circle at 50% 70%, rgba(192, 38, 211, 0.2) 0%, transparent 35%)
+              `,
+              transform: `translateZ(${-40 + scrollY * 0.03}px) scale(${1 + scrollY * 0.0005})`,
+              transition: 'transform 0.5s ease-out',
+            }}></div>
+          </div>
+          
+          {/* 3D Horizontal grid floor */}
+          <div 
+            className="absolute inset-0 grid-floor" 
+            style={{
+              backgroundImage: `
+                linear-gradient(to bottom, transparent 49px, rgba(168, 85, 247, 0.05) 50px, transparent 51px),
+                radial-gradient(circle at center, rgba(168, 85, 247, 0.1) 0%, transparent 70%)
+              `,
+              backgroundSize: '100% 50px, 100% 100%',
+              transform: `rotateX(${Math.min(60 + scrollY * 0.02, 80)}deg) translateZ(-120px) translateY(${-scrollY * 0.15}px)`,
+              transformOrigin: 'center bottom',
+              transition: 'transform 0.3s ease-out',
+            }}
+          ></div>
+          
+          {/* 3D Vertical grid walls */}
+          <div 
+            className="absolute inset-0 grid-wall" 
+            style={{
+              transform: `translateZ(${-60 + scrollY * 0.08}px) scale(${1 + scrollY * 0.001})`,
+              transition: 'transform 0.3s ease-out',
+            }}
+          ></div>
+
+          {/* Floating particles (increased number for more depth) */}
+          <div className="absolute inset-0 particle-container">
+            {[...Array(25)].map((_, index) => (
+              <div 
+                key={index}
+                className="particle"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  width: `${Math.random() * 5 + 1}px`,
+                  height: `${Math.random() * 5 + 1}px`,
+                  backgroundColor: `rgba(${168 + Math.random() * 30}, ${85 + Math.random() * 30}, ${247 + Math.random() * 10}, ${Math.random() * 0.6 + 0.3})`,
+                  boxShadow: `0 0 ${Math.random() * 12 + 6}px rgba(168, 85, 247, ${Math.random() * 0.4 + 0.3})`,
+                  animation: `floatParticle ${Math.random() * 15 + 20}s linear infinite, pulseParticle ${Math.random() * 6 + 4}s ease-in-out infinite alternate`,
+                  animationDelay: `${Math.random() * 15}s`,
+                  transform: `translateZ(${Math.random() * 300 - 150}px)`,
+                }}
+              ></div>
+            ))}
+          </div>
+          
+          {/* 3D floating light orbs with depth - adds another dimension to the scene */}
+          {[...Array(8)].map((_, index) => (
+            <div 
+              key={`orb-${index}`}
+              className="absolute rounded-full blur-lg"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: `${Math.random() * 60 + 40}px`,
+                height: `${Math.random() * 60 + 40}px`,
+                backgroundColor: `rgba(${168 + Math.random() * 30}, ${85 + Math.random() * 50}, ${247 + Math.random() * 10}, ${Math.random() * 0.06 + 0.03})`,
+                transform: `translateZ(${Math.random() * 100 - 200}px) translate(${scrollY * (Math.random() * 0.05)}px, ${scrollY * (Math.random() * 0.08)}px)`,
+                animation: `pulseParticle ${Math.random() * 10 + 10}s ease-in-out infinite alternate`,
+                animationDelay: `${Math.random() * 5}s`,
+                transition: 'transform 0.5s ease-out',
+              }}
+            ></div>
+          ))}
+        </div>
       
       {/* Center glow */}
       <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[40vh] z-20 rounded-full bg-gradient-to-r from-[#a855f7]/10 to-[#8b5cf6]/10 blur-3xl transform ${animate ? 'opacity-100 scale-100' : 'opacity-0 scale-90'} transition-all duration-2000 ease-in-out animate-pulse-slow`}></div>
@@ -229,15 +357,62 @@ const Home = ({ onStartRoom }: HomeProps) => {
         
         {/* User Info Display - Show when authenticated */}
         {isAuthenticated && user && (
-          <div className="mb-8 opacity-100 transition-all duration-700 ease-out animation-delay-450 transform-gpu">
-            <div className="flex items-center justify-center gap-4 bg-[#1a002a]/60 backdrop-blur-md px-6 py-4 rounded-lg border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300">
+          <div className="mb-8 opacity-100 transition-all duration-700 ease-out animation-delay-450 transform-gpu relative" ref={profileMenuRef}>
+            <div 
+              className="flex items-center justify-center gap-4 bg-[#1a002a]/60 backdrop-blur-md px-6 py-4 rounded-lg border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300 cursor-pointer"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+            >
               <img 
                 src={user.picture} 
                 alt="Profile" 
                 className="w-10 h-10 rounded-full border-2 border-purple-500/50"
+                onError={(e) => {
+                  // Fallback to initial if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  (target.nextElementSibling as HTMLElement).style.display = 'flex';
+                }}
               />
+              <div 
+                className="w-10 h-10 rounded-full border-2 border-purple-500/50 bg-purple-700 flex items-center justify-center text-white font-bold text-lg"
+                style={{ display: 'none' }}
+              >
+                {user.name.charAt(0)}
+              </div>
               <div className="text-white text-base font-medium">Signed in as <span className="text-purple-300">{user.name}</span></div>
             </div>
+            
+            {/* Simple modal centered on screen */}
+            {showProfileMenu && (
+              <>
+                {/* Dark overlay */}
+                <div 
+                  className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[999]" 
+                  onClick={() => setShowProfileMenu(false)}
+                ></div>
+                
+                {/* Modal */}
+                <div 
+                  className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-50 sm:w-96 md:w-[200px] bg-[#1a002a] border-4 border-purple-500 rounded-2xl shadow-2xl py-4 px-4 z-[1000]"
+                  style={{
+                    boxShadow: '0 0 40px rgba(168, 85, 247, 0.7)'
+                  }}
+                >
+                  <button 
+                    onClick={() => {
+                      logout();
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full text-center px-4 py-2 text-xl  text-red-400 hover:bg-red-800 hover:text-white transition-all duration-200 flex items-center justify-center rounded-xl"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign Out
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
         
@@ -267,6 +442,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
           <button 
             onClick={() => scrollToDemo()}
             className="group relative px-10 py-5 text-lg font-medium text-white bg-transparent border border-[#a855f7]/50 hover:border-[#a855f7] rounded-md transition-all duration-300 flex items-center justify-center min-w-[220px] transform hover:scale-110 hover:translate-z-10 sm:flex-1"
+            data-component-name="Home"
           >
             <span className="relative z-10 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3" viewBox="0 0 20 20" fill="currentColor">
@@ -274,7 +450,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
               </svg>
               View Demo
             </span>
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#a855f7]/20 to-[#8b5cf6]/20 rounded-md blur opacity-0 group-hover:opacity-30 transition duration-300"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#a855f7]/20 to-[#8b5cf6]/20 rounded-md blur opacity-0 group-hover:opacity-30 transition duration-300" data-component-name="Home"></div>
           </button>
         </div>
         
@@ -531,7 +707,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
                 }}
               >
                 <a
-                  href="/downloads/DrawWave-Setup.exe"
+                  href="https://github.com/YevinMawathage/DrawWave-Web-Application/releases/download/v1.0.0/DrawWave.exe"
                   download
                   className="inline-flex items-center px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/30"
                 >
@@ -558,8 +734,10 @@ const Home = ({ onStartRoom }: HomeProps) => {
             </div>
             
             {/* Video container using direct iframe without any overlays */}
-            <div className={`w-full max-w-4xl mx-auto transform-gpu ${animate ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'} transition-all duration-1000 ease-out delay-1600`}
-                 style={{ aspectRatio: '16/9', marginBottom: '20px' }}>
+            <div 
+              ref={videoSectionRef}
+              className={`w-full max-w-4xl mx-auto transform-gpu ${animate ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'} transition-all duration-1000 ease-out delay-1600`}
+              style={{ aspectRatio: '16/9', marginBottom: '20px' }}>
                  
               {/* YouTube video - positioned as the only element */}
               <iframe 
