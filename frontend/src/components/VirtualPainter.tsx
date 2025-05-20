@@ -543,9 +543,15 @@ const handleMouseLeave = () => {
     reconnectTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
     reconnectTimeoutsRef.current = [];
     
-    // Get host from current location or use default
-    const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
-    const WS_URL = `ws://${host}:8765`;
+    // Get WebSocket URL from environment variables or fallback to dynamic determination
+    let WS_URL = import.meta.env.VITE_WEBSOCKET_URL;
+    
+    // If no environment variable is set, fall back to automatic detection
+    if (!WS_URL) {
+      const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+      WS_URL = `ws://${host}:8765`;
+      console.log('No WebSocket URL environment variable found, using auto-detected URL');
+    }
     
     console.log('Connecting to WebSocket server at:', WS_URL);
     

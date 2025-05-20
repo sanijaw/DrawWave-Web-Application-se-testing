@@ -71,10 +71,13 @@ class WebSocketServer:
             return
 
         for client in self.sessions[session_id]["clients"]:
-            if client != exclude and client.open:
+            if client != exclude:
                 try:
+                    # Try to send the message directly without checking open attribute
                     await client.send(message)
-                except:
+                except Exception as e:
+                    # Connection might be closed or other error occurred
+                    print(f"Error sending message to client: {str(e)}")
                     pass
 
     async def handle_client(self, websocket):

@@ -2,5 +2,6 @@ opencv-python
 mediapipe
 numpy
 websockets
-sqlite3
 Pillow
+requests
+

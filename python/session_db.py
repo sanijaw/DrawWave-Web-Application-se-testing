@@ -8,8 +8,31 @@ class SessionDB:
     """
     A class to interact with the Node.js backend for session management.
     """
-    def __init__(self, api_url="http://localhost:5000/api"):
-        self.api_url = api_url
+    def __init__(self, api_url=None):
+        # Get the API URL from environment variable or fall back to default
+        # This allows configuring the API URL via Docker environment variables
+        import os
+        # Try different possible API URLs when in Docker
+        # The host.docker.internal hostname allows reaching the host machine from inside Docker
+        self.api_url = api_url or os.environ.get('API_URL', None)
+        
+        if not self.api_url:
+            # If API_URL wasn't provided, try common Docker connection patterns
+            possible_urls = [
+                'http://localhost:5000/api',           # Standard localhost
+                'http://host.docker.internal:5000/api', # Docker for Windows/Mac special DNS
+                'http://172.17.0.1:5000/api',          # Default Docker gateway
+                'http://backend:5000/api'              # Service name if on same network
+            ]
+            
+            self.api_url = possible_urls[0]  # Start with localhost as default
+            print(f"No API_URL provided, will try multiple connection options")
+        else:
+            print(f"Using API URL from configuration: {self.api_url}")
+            
+        self.connection_enabled = True      # Flag to track if we should keep trying to connect
+        self.connection_attempts = 0        # Count connection attempts
+        self.max_connection_attempts = 3    # Maximum number of retries
     
     def check_session_exists(self, session_id):
         """
@@ -124,12 +147,52 @@ class SessionDB:
         Get all active sessions from MongoDB.
         Returns a list of session data objects or None if there are no active sessions.
         """
+        if not self.connection_enabled:
+            print("Connection to API disabled due to previous failures, skipping DB operations")
+            return None
+            
+        # If we've reached max retries, stop trying to connect
+        if self.connection_attempts >= self.max_connection_attempts:
+            print(f"Reached maximum connection attempts ({self.max_connection_attempts}), disabling API connection")
+            self.connection_enabled = False
+            return None
+            
+        # Increment connection attempts
+        self.connection_attempts += 1
+        
         try:
-            response = requests.get(f"{self.api_url}/sessions/active")
+            # Set a short timeout to avoid hanging
+            response = requests.get(f"{self.api_url}/sessions/active", timeout=3)
             data = response.json()
+            
+            # Reset attempts counter on success
+            self.connection_attempts = 0
+            print(f"Successfully connected to API at {self.api_url}")
             
             if response.status_code == 200 and data.get('success'):
                 return data.get('data')
+            return None
+        except requests.exceptions.ConnectionError as e:
+            print(f"Error connecting to API at {self.api_url}: {e}")
+            
+            # Try alternate URLs if available
+            if self.connection_attempts < self.max_connection_attempts:
+                import os
+                possible_urls = [
+                    'http://localhost:5000/api',           # Standard localhost
+                    'http://host.docker.internal:5000/api', # Docker for Windows/Mac special DNS
+                    'http://172.17.0.1:5000/api',          # Default Docker gateway
+                    'http://backend:5000/api'              # Service name if on same network
+                ]
+                
+                # Use a different URL for the next attempt
+                next_url_index = self.connection_attempts % len(possible_urls)
+                self.api_url = possible_urls[next_url_index]
+                print(f"Switching to alternate API URL: {self.api_url} for next attempt")
+                
+            if self.connection_attempts >= self.max_connection_attempts:
+                print("Disabling further connection attempts to avoid delays")
+                self.connection_enabled = False
             return None
         except Exception as e:
             print(f"Error getting active sessions: {e}")
