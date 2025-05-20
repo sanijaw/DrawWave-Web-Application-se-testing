@@ -25,7 +25,12 @@ const Navbar = ({ inSession, sessionId, onLeaveRoom, onDownloadCanvas }: NavbarP
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         {/* Logo on the left */}
         <div className="flex items-center">
-          <h1 className="text-xl font-bold text-white">DrawWave</h1>
+          <div 
+            onClick={() => window.location.href = '/'}
+            className="transition-transform hover:scale-105 duration-200 cursor-pointer"
+          >
+            <h1 className="text-xl font-bold text-white">DrawWave</h1>
+          </div>
         </div>
 
         {/* All controls grouped on the right corner */}

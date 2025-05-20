@@ -11,6 +11,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
   const [autoplayVideo, setAutoplayVideo] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const demoSectionRef = useRef<HTMLDivElement>(null);
+  const desktopSectionRef = useRef<HTMLDivElement>(null);
   
   // Get auth context to check user authentication status and user information
   const { user, isAuthenticated, login } = useAuth();
@@ -31,6 +32,14 @@ const Home = ({ onStartRoom }: HomeProps) => {
         top: window.innerHeight,
         behavior: 'smooth'
       });
+    }
+  };
+
+  // Function to scroll to desktop section
+  const scrollToDesktop = () => {    
+    // Scroll to the desktop section
+    if (desktopSectionRef.current) {
+      desktopSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
   
@@ -139,10 +148,11 @@ const Home = ({ onStartRoom }: HomeProps) => {
       <canvas 
         ref={canvasRef}
         className="absolute inset-0 w-full h-full z-0"
+        style={{ pointerEvents: 'none' }}
       />
       
       {/* Backdrop with grid lines and glow effects */}
-      <div className="absolute inset-0 bg-[#0a001a] z-10 overflow-hidden opacity-70">
+      <div className="absolute inset-0 bg-[#0a001a] z-10 overflow-hidden opacity-70" style={{ pointerEvents: 'none' }}>
         {/* Gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a002a] via-[#150025] to-[#0a001a] opacity-80"></div>
         
@@ -190,7 +200,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
       {/* Content Container */}
       <div className="z-40 flex flex-col items-center justify-center text-center w-full px-4 sm:px-6 md:px-8 min-h-[100vh] transform translate-y-0 opacity-100 transition-all duration-1000 ease-out perspective-[1000px]">
         <div className="relative w-full max-w-4xl mx-auto scale-100 opacity-100 transition-all duration-1000 ease-out animation-delay-300 transform-gpu hover:rotate-y-3 hover:scale-105 transition-transform">
-          <h1 className="text-[3.5rem] sm:text-[5rem] md:text-[6rem] font-bold mb-4 text-white transform-gpu" style={{ textShadow: 'rgba(168, 85, 247, 0.4) 0px 0px 30px' }}>
+          <h1 className="text-[4.5rem] sm:text-[6rem] md:text-[7rem] font-bold mb-6 text-white transform-gpu" style={{ textShadow: 'rgba(168, 85, 247, 0.5) 0px 0px 40px' }}>
             <span className="relative inline-block animate-float">
               <span className="relative z-10 bg-gradient-to-r from-purple-300 via-fuchsia-300 to-indigo-300 text-transparent bg-clip-text">DrawWave</span>
               <span className="absolute -left-1 -top-1 text-[#a855f7]/10 blur-sm">DrawWave</span>
@@ -199,23 +209,23 @@ const Home = ({ onStartRoom }: HomeProps) => {
             </span>
           </h1>
         </div>
-        <p className="text-[#a855f7]/80 text-xl sm:text-2xl mb-6 opacity-100 transition-all duration-1000 ease-out animation-delay-400 transform-gpu hover:scale-105 transition-transform">Introducing Collaborative Drawing</p>
+        <p className="text-[#a855f7]/80 text-3xl sm:text-4xl mb-8 opacity-100 transition-all duration-1000 ease-out animation-delay-400 transform-gpu hover:scale-105 transition-transform">Introducing Collaborative Drawing</p>
         
         {/* User Info Display - Show when authenticated */}
         {isAuthenticated && user && (
           <div className="mb-8 opacity-100 transition-all duration-700 ease-out animation-delay-450 transform-gpu">
-            <div className="flex items-center justify-center gap-3 bg-[#1a002a]/60 backdrop-blur-md px-5 py-3 rounded-lg border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300">
+            <div className="flex items-center justify-center gap-4 bg-[#1a002a]/60 backdrop-blur-md px-6 py-4 rounded-lg border border-purple-500/30 hover:border-purple-500/50 transition-all duration-300">
               <img 
                 src={user.picture} 
                 alt="Profile" 
-                className="w-8 h-8 rounded-full border-2 border-purple-500/50"
+                className="w-10 h-10 rounded-full border-2 border-purple-500/50"
               />
-              <div className="text-white text-sm font-medium">Signed in as <span className="text-purple-300">{user.name}</span></div>
+              <div className="text-white text-base font-medium">Signed in as <span className="text-purple-300">{user.name}</span></div>
             </div>
           </div>
         )}
         
-        <div className="flex flex-col sm:flex-row gap-6 mt-6 mb-12 opacity-100 translate-y-0 transition-all duration-1000 ease-out animation-delay-500 w-full max-w-xl mx-auto">
+        <div className="flex flex-col sm:flex-row gap-8 mt-8 mb-16 opacity-100 translate-y-0 transition-all duration-1000 ease-out animation-delay-500 w-full max-w-2xl mx-auto">
           <button 
             onClick={() => {
               if (isAuthenticated) {
@@ -227,10 +237,10 @@ const Home = ({ onStartRoom }: HomeProps) => {
                 }, 2000);
               }
             }}
-            className="group relative px-8 py-4 text-base font-medium text-white bg-[#a855f7] hover:bg-[#9046d1] rounded-md transition-all duration-300 shadow-lg shadow-[#a855f7]/30 flex items-center justify-center min-w-[180px] transform hover:scale-110 hover:translate-z-10 sm:flex-1"
+            className="group relative px-10 py-5 text-lg font-medium text-white bg-[#a855f7] hover:bg-[#9046d1] rounded-md transition-all duration-300 shadow-lg shadow-[#a855f7]/30 flex items-center justify-center min-w-[220px] transform hover:scale-110 hover:translate-z-10 sm:flex-1"
           >
             <span className="relative z-10 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
               Start Session
@@ -240,10 +250,10 @@ const Home = ({ onStartRoom }: HomeProps) => {
 
           <button 
             onClick={() => scrollToDemo()}
-            className="group relative px-8 py-4 text-base font-medium text-white bg-transparent border border-[#a855f7]/50 hover:border-[#a855f7] rounded-md transition-all duration-300 flex items-center justify-center min-w-[180px] transform hover:scale-110 hover:translate-z-10 sm:flex-1"
+            className="group relative px-10 py-5 text-lg font-medium text-white bg-transparent border border-[#a855f7]/50 hover:border-[#a855f7] rounded-md transition-all duration-300 flex items-center justify-center min-w-[220px] transform hover:scale-110 hover:translate-z-10 sm:flex-1"
           >
             <span className="relative z-10 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-3" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
               </svg>
               View Demo
@@ -256,41 +266,35 @@ const Home = ({ onStartRoom }: HomeProps) => {
         
         {/* Bottom icons row with hover effects */}
         <div className="flex flex-col items-center gap-8">
-          <div className={`flex gap-12 mt-2 ${animate ? 'opacity-100' : 'opacity-0'} transition-all duration-1000 ease-out animation-delay-700`}>
+          <div className={`flex gap-16 mt-4 ${animate ? 'opacity-100' : 'opacity-0'} transition-all duration-1000 ease-out animation-delay-700`}>
             {['Draw', 'Collab', 'Platform'].map((label, index) => (
               <div key={label} className="flex flex-col items-center group">
-                <div className={`w-10 h-10 border border-[#a855f7]/30 rounded-md flex items-center justify-center mb-2 transform transition-all duration-300 group-hover:scale-110 group-hover:border-[#a855f7]/60 group-hover:shadow-md group-hover:shadow-[#a855f7]/20 animation-delay-${index * 300}`}>
+                <div className={`w-14 h-14 border border-[#a855f7]/30 rounded-md flex items-center justify-center mb-3 transform transition-all duration-300 group-hover:scale-110 group-hover:border-[#a855f7]/60 group-hover:shadow-md group-hover:shadow-[#a855f7]/20 animation-delay-${index * 300}`}>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                       className={`w-4 h-4 text-[#a855f7]/70 group-hover:text-[#a855f7] transition-all duration-300 ${animate ? 'animate-float' : ''}`}
+                       className={`w-6 h-6 text-[#a855f7]/70 group-hover:text-[#a855f7] transition-all duration-300 ${animate ? 'animate-float' : ''}`}
                        style={{ animationDelay: `${index * 0.3}s` }}>
                     {index === 0 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />}
                     {index === 1 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />}
                     {index === 2 && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />}
                   </svg>
                 </div>
-                <p className="text-xs text-white/70 group-hover:text-white transition-colors duration-300">{label}</p>
+                <p className="text-sm font-medium text-white/70 group-hover:text-white transition-colors duration-300">{label}</p>
               </div>
             ))}
           </div>
           
           {/* Download Buttons */}
           <div className={`flex items-center gap-4 mt-4 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} transition-all duration-1000 ease-out animation-delay-800`}>
-            <a
-              href="/downloads/DrawWave-Setup.exe"
-              download
-              className="inline-flex items-center px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/30"
+            <button
+              onClick={scrollToDesktop}
+              className="inline-flex items-center px-8 py-4 text-lg rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/50 shadow-lg shadow-purple-900/30"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               Download Desktop App
-            </a>
-            <a
-              href="/desktop"
-              className="inline-flex items-center px-6 py-3 rounded-lg border border-purple-500/50 text-white font-medium hover:bg-purple-500/10 transition-all duration-300"
-            >
-              Learn More
-            </a>
+            </button>
+
           </div>
         </div>
         
@@ -431,36 +435,38 @@ const Home = ({ onStartRoom }: HomeProps) => {
           </div>
           
           {/* Desktop Version Section */}
-          <div className="mt-32 mb-16 text-center">
-            <div className={`transform-gpu ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} transition-all duration-1000 ease-out delay-1500`}>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 relative inline-block">
-                <span className="relative z-10 bg-gradient-to-r from-purple-300 via-fuchsia-300 to-indigo-300 text-transparent bg-clip-text">
+          <div ref={desktopSectionRef} className="mt-32 mb-16 text-center relative z-50">
+            <div className={`transform-gpu relative z-50 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} transition-all duration-1000 ease-out delay-1500`}>
+              <div className="absolute inset-0 w-full h-full bg-black/40 backdrop-blur-sm -z-10 rounded-3xl"></div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 relative inline-block drop-shadow-xl">
+                <span className="relative z-10 bg-gradient-to-r from-purple-300 via-fuchsia-300 to-indigo-300 text-transparent bg-clip-text drop-shadow-lg">
                   Try DrawWave Desktop
                 </span>
-                <span className="absolute -left-1 -top-1 text-[#a855f7]/10 blur-md">Try DrawWave Desktop</span>
+                <span className="absolute -left-1 -top-1 text-[#a855f7]/20 blur-md">Try DrawWave Desktop</span>
+                <span className="absolute -left-0.5 -top-0.5 text-white/5 blur-sm">Try DrawWave Desktop</span>
               </h2>
-              <p className="text-white text-base sm:text-lg max-w-2xl mx-auto font-medium mb-8">
+              <p className="text-white text-base sm:text-lg max-w-2xl mx-auto font-medium mb-8 drop-shadow-md">
                 Experience enhanced performance and additional features with our desktop application
               </p>
               
               {/* Desktop Features Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8 px-4">
-                <div className="bg-[#1a002a]/70 backdrop-blur-md border border-purple-900/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300">
-                  <h3 className="text-white text-lg font-semibold mb-2">Better Performance</h3>
-                  <p className="text-white/80 text-sm">Experience smoother drawing and faster response times with native desktop performance</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8 px-4 relative z-10">
+                <div className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30">
+                  <h3 className="text-white text-lg font-semibold mb-2 drop-shadow-md">Better Performance</h3>
+                  <p className="text-white/90 text-sm">Experience smoother drawing and faster response times with native desktop performance</p>
                 </div>
-                <div className="bg-[#1a002a]/70 backdrop-blur-md border border-purple-900/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300">
-                  <h3 className="text-white text-lg font-semibold mb-2">Offline Support</h3>
-                  <p className="text-white/80 text-sm">Continue drawing even without an internet connection and sync when back online</p>
+                <div className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30">
+                  <h3 className="text-white text-lg font-semibold mb-2 drop-shadow-md">Offline Support</h3>
+                  <p className="text-white/90 text-sm">Continue drawing even without an internet connection and sync when back online</p>
                 </div>
-                <div className="bg-[#1a002a]/70 backdrop-blur-md border border-purple-900/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300">
-                  <h3 className="text-white text-lg font-semibold mb-2">Advanced Tools</h3>
-                  <p className="text-white/80 text-sm">Access additional drawing tools and customization options exclusive to the desktop version</p>
+                <div className="bg-[#1a002a]/90 backdrop-blur-md border border-purple-500/50 rounded-lg p-6 hover:border-purple-500/70 transition-all duration-300 shadow-lg shadow-purple-900/30">
+                  <h3 className="text-white text-lg font-semibold mb-2 drop-shadow-md">Advanced Tools</h3>
+                  <p className="text-white/90 text-sm">Access additional drawing tools and customization options exclusive to the desktop version</p>
                 </div>
               </div>
               
               {/* Download Button */}
-              <div className="flex justify-center space-x-4">
+              <div className="flex justify-center space-x-4 relative z-20">
                 <a
                   href="/downloads/DrawWave-Setup.exe"
                   download
@@ -471,13 +477,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
                   </svg>
                   Download for Windows
                 </a>
-                <a
-                  href="#"
-                  onClick={() => window.location.href = '/desktop'}
-                  className="inline-flex items-center px-6 py-3 rounded-lg border border-purple-500/50 text-white font-medium hover:bg-purple-500/10 transition-all duration-300"
-                >
-                  Learn More
-                </a>
+
               </div>
             </div>
           </div>
