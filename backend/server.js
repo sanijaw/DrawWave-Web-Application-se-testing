@@ -11,10 +11,10 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: true,
-  credentials: true, // Important for authentication
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+  origin: '*',                 // Allow all origins
+  methods: '*',                // Allow all methods
+  allowedHeaders: '*',         // Allow all headers
+  exposedHeaders: '*',         // Expose all headers            
 }));
 app.use(bodyParser.json());
 
