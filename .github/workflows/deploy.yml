@@ -32,7 +32,28 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: yevinraizel/drawwave-frontend:latest
+      
+      # Create backend .env file before building the backend
+      - name: Create backend .env file
+        run: |
+          mkdir -p ./backend
+          cat > ./backend/.env << EOL
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          PORT=5000
           
+          # JWT Secret
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          
+          # Session Secret
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          
+          # Google OAuth credentials
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          
+          # Frontend URL for redirects
+          FRONTEND_URL=http://${{ secrets.VPS_HOST }}
+          EOL
 
       # Build and push Backend Docker image
       - name: Build and push Backend
@@ -42,7 +63,6 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: yevinraizel/drawwave-backend:latest
-          
 
       # Build and push Python Docker image
       - name: Build and push Python
@@ -52,7 +72,6 @@ jobs:
           file: ./python/Dockerfile
           push: true
           tags: yevinraizel/drawwave-python:latest
-       
 
       # Deploy to VPS using SSH
       - name: Deploy to VPS
