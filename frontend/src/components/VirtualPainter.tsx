@@ -198,17 +198,6 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     }
   };
 
-  const startDrawing = (x: number, y: number) => {
-    setIsDrawing(true);
-    setPrevPoint({ x, y });
-    
-    // Initialize a new drawing action
-    setCurrentDrawAction({
-      type: 'draw',
-      points: [{ x, y }]
-    });
-  };
-  
   // Throttle function to limit the frequency of function calls
   const throttle = (callback: Function, delay: number) => {
     let lastCall = 0;
@@ -219,6 +208,67 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
         callback(...args);
       }
     };
+  };
+
+  const startDrawing = (x: number, y: number) => {
+    // Ensure any previous drawing is properly stopped
+    if (isDrawing) {
+      stopDrawing();
+    }
+    
+    // Reset the previous point - this is crucial to prevent connecting to previous lines
+    setPrevPoint(null);
+    
+    // Now set drawing state
+    setIsDrawing(true);
+    
+    // Set the first point of this new drawing path
+    setPrevPoint({ x, y });
+    
+    // Initialize a new drawing action
+    setCurrentDrawAction({
+      type: 'draw',
+      points: [{ x, y }]
+    });
+    
+    // Draw a dot at the start point to ensure we have something visible
+    // for individual dots or when starting a new path
+    const drawingCanvas = drawingCanvasRef.current;
+    if (drawingCanvas) {
+      const ctx = drawingCanvas.getContext('2d');
+      if (ctx) {
+        const scaleFactor = {
+          x: drawingCanvas.width / drawingCanvas.offsetWidth,
+          y: drawingCanvas.height / drawingCanvas.offsetHeight
+        };
+        
+        const scaledX = x * scaleFactor.x;
+        const scaledY = y * scaleFactor.y;
+        
+        // Clear any existing path to ensure we're starting fresh
+        ctx.beginPath();
+        ctx.strokeStyle = selectedColor;
+        ctx.fillStyle = selectedColor;
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        
+        // Draw a small circle at the starting point
+        ctx.arc(scaledX, scaledY, 2.5, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Explicitly begin a new path after drawing the dot
+        ctx.beginPath();
+      }
+    }
+    
+    // If we're in a session, send this initial point to the server
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN && sessionId) {
+      wsConnection.send(JSON.stringify({
+        type: 'start_drawing',
+        position: { x, y },
+        sessionId: sessionId
+      }));
+    }
   };
 
   const sendDrawingUpdate = useRef(
@@ -359,7 +409,7 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
   }, [drawHistory, sessionId, selectedColor, wsConnection]);
   
   const draw = (x: number, y: number) => {
-    if (!isDrawing || !prevPoint) return;
+    if (!isDrawing) return;
 
     const drawingCanvas = drawingCanvasRef.current;
     if (!drawingCanvas) return;
@@ -375,18 +425,27 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
     // Scale the coordinates
     const scaledX = x * scaleFactor.x;
     const scaledY = y * scaleFactor.y;
-    const scaledPrevX = prevPoint.x * scaleFactor.x;
-    const scaledPrevY = prevPoint.y * scaleFactor.y;
-
-    // Draw the line
-    ctx.beginPath();
-    ctx.strokeStyle = selectedColor;
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.moveTo(scaledPrevX, scaledPrevY);
-    ctx.lineTo(scaledX, scaledY);
-    ctx.stroke();
+    
+    // If we have a previous point, draw a line from it to current point
+    if (prevPoint) {
+      const scaledPrevX = prevPoint.x * scaleFactor.x;
+      const scaledPrevY = prevPoint.y * scaleFactor.y;
+      
+      ctx.beginPath();
+      ctx.strokeStyle = selectedColor;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.moveTo(scaledPrevX, scaledPrevY);
+      ctx.lineTo(scaledX, scaledY);
+      ctx.stroke();
+    } else {
+      // If no previous point, just draw a dot at the current position
+      ctx.beginPath();
+      ctx.fillStyle = selectedColor;
+      ctx.arc(scaledX, scaledY, 2.5, 0, 2 * Math.PI);
+      ctx.fill();
+    }
 
     // Update previous point
     setPrevPoint({ x, y });
@@ -525,7 +584,7 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
         const data = JSON.parse(event.data);
         console.log('Received WebSocket message:', data.type);
         
-        // Handle hand position updates for cursor
+        // Handle various gesture-related message types
         if (data.type === "hand_position") {
           // Update cursor position with smoothing
           setCursorPosition(prevPos => {
@@ -539,8 +598,61 @@ const VirtualPainter = ({ onSessionUpdate, downloadRef }: VirtualPainterProps) =
             };
           });
           
+          // Store the previous gesture mode
+          const previousMode = cursorMode;
+          
+          // Set the new gesture mode
           setCursorMode(data.mode);
+          
+          // Handle drawing/not drawing transitions based on gesture changes
+          if (data.mode === 'drawing') {
+            // If transitioning from non-drawing to drawing, ensure we start a new line
+            if (previousMode !== 'drawing') {
+              // If we were already drawing, stop first to create a break between lines
+              if (isDrawing) {
+                stopDrawing();
+              }
+              
+              // Start a new drawing action at the current position
+              startDrawing(data.position.x, data.position.y);
+            } else if (isDrawing) {
+              // Continue drawing if we're already in drawing mode
+              draw(data.position.x, data.position.y);
+            }
+          } else {
+            // If we're transitioning away from drawing mode, stop drawing
+            if (previousMode === 'drawing' && isDrawing) {
+              stopDrawing();
+            }
+            
+            // Handle other gestures as needed
+            if (data.mode === 'erase') {
+              // Handle eraser if implemented
+            } else if (data.mode === 'undo' && Date.now() - lastUndoTimeRef.current > 1000) {
+              // Execute undo with throttling to prevent rapid multiple undos
+              handleUndo();
+              lastUndoTimeRef.current = Date.now();
+            }
+          }
           return; // Process this separately from the switch
+        } else if (data.type === "gesture_start") {
+          // Server signals the start of a new gesture (drawing or erasing)
+          if (data.gesture === "drawing") {
+            // If we were already drawing, ensure we stop first to create a gap
+            if (isDrawing) {
+              stopDrawing();
+            }
+            // Don't actually start drawing yet - we'll wait for the first point
+            // Just make sure previous state is cleared
+            setPrevPoint(null);
+          }
+          return; // Process separately
+        } else if (data.type === "gesture_complete") {
+          // Server signals the end of a gesture
+          if (data.previous === "drawing" && isDrawing) {
+            stopDrawing();
+          }
+          return; // Process separately
         }
         
         // Handle different message types

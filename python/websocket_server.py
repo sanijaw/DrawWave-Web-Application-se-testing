@@ -527,30 +527,53 @@ class WebSocketServer:
         session_data = self.sessions.get(session_id, {})
         prev_gesture = session_data.get("prev_gesture", "idle")
         
+        # Check for gesture transitions
+        is_gesture_transition = gesture != prev_gesture
+        
         if gesture == "drawing":
             point = (index_tip.x, index_tip.y)
+            
+            # If we're just starting to draw (transitioning from a different gesture),
+            # reset the canvas's previous point to ensure we don't connect from previous strokes
+            if is_gesture_transition:
+                # Reset the drawing state to ensure a new line starts
+                canvas.reset_previous_points()
+                
+                # Send a signal to the frontend to start a new drawing path
+                if websocket and session_id:
+                    asyncio.create_task(websocket.send(json.dumps({
+                        "type": "gesture_start",
+                        "gesture": "drawing"
+                    })))
+            
+            # Now draw the point
             canvas.draw(point)
             gesture_points.append({"x": point[0], "y": point[1]})
             
-            # Send gesture point to client for history tracking if websocket is provided
+            # Send gesture point to client for history tracking
             if websocket and session_id:
                 asyncio.create_task(websocket.send(json.dumps({
                     "type": "gesture_point",
                     "gesture": "drawing",
                     "point": {"x": point[0], "y": point[1]}
                 })))
-                
-            # Initialize drawing session if transitioning from idle
-            if prev_gesture != "drawing" and websocket and session_id:
-                # If we were previously erasing or idle, start a new drawing action
-                asyncio.create_task(websocket.send(json.dumps({
-                    "type": "gesture_start",
-                    "gesture": "drawing"
-                })))
 
         elif gesture == "erase":
             middle_tip = landmarks.landmark[12]
             midpoint = ((index_tip.x + middle_tip.x) / 2, (index_tip.y + middle_tip.y) / 2)
+            
+            # If transitioning to erasing, reset previous points
+            if is_gesture_transition:
+                canvas.reset_previous_points()
+                
+                # Signal to frontend
+                if websocket and session_id:
+                    asyncio.create_task(websocket.send(json.dumps({
+                        "type": "gesture_start",
+                        "gesture": "erase"
+                    })))
+            
+            # Perform erasing
             canvas.erase(midpoint)
             gesture_points.append({"x": midpoint[0], "y": midpoint[1]})
             
@@ -561,23 +584,17 @@ class WebSocketServer:
                     "gesture": "erase",
                     "point": {"x": midpoint[0], "y": midpoint[1]}
                 })))
-                
-            # Initialize erasing session if transitioning from idle
-            if prev_gesture != "erase" and websocket and session_id:
-                # If we were previously drawing or idle, start a new erase action
-                asyncio.create_task(websocket.send(json.dumps({
-                    "type": "gesture_start",
-                    "gesture": "erase"
-                })))
 
-        elif gesture == "idle":
-            # When returning to idle after drawing/erasing, send a completion signal
+        elif gesture == "idle" or gesture == "undo":
+            # When returning to idle or doing undo after drawing/erasing, send a completion signal
             if prev_gesture in ["drawing", "erase"] and websocket and session_id:
-                print(f"Completing gesture: {prev_gesture} -> idle")
+                print(f"Completing gesture: {prev_gesture} -> {gesture}")
                 asyncio.create_task(websocket.send(json.dumps({
                     "type": "gesture_complete",
                     "previous": prev_gesture
                 })))
+            
+            # Always reset previous points when entering idle or undo mode
             canvas.reset_previous_points()
         
         # Update the previous gesture
