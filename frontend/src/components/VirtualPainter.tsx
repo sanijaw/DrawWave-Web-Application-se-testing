@@ -1311,7 +1311,7 @@ const handleMouseLeave = () => {
       const generatedSessionId = createRoomInput.trim() + '-' + Math.random().toString(36).substring(2, 7);
       
       // Get host from current location or use default for API
-      const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+      // const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const CREATE = `${API_URL}/sessions/create`;
       console.log('Creating session with backend at:', CREATE);
@@ -1403,7 +1403,7 @@ const handleMouseLeave = () => {
     
     try {
       // Get host from current location or use default for API
-      const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+      // const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const VALIDATE = `${API_URL}/sessions/validate`;
       console.log('Validating session with backend at:', VALIDATE);
