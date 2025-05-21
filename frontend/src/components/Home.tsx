@@ -742,7 +742,7 @@ const Home = ({ onStartRoom }: HomeProps) => {
               {/* YouTube video - positioned as the only element */}
               <iframe 
                 className="w-full h-full rounded-lg" 
-                src={`https://youtu.be/00fwITgHBcQ${autoplayVideo ? '&autoplay=1&mute=0' : ''}`} 
+                src={`https://youtu.be/00fwITgHBcQ?si=fpRj_oBwLnIvIn9d${autoplayVideo ? '&autoplay=1&mute=0' : ''}`} 
                 title="DrawWave Demo" 
                 frameBorder="0"
                 allowFullScreen
