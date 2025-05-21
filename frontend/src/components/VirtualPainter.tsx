@@ -1312,11 +1312,12 @@ const handleMouseLeave = () => {
       
       // Get host from current location or use default for API
       const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
-      const API_URL = `http://${host}:5000/api/sessions/create`;
-      console.log('Creating session with backend at:', API_URL);
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const CREATE = `${API_URL}/sessions/create`;
+      console.log('Creating session with backend at:', CREATE);
       
       // Save session to MongoDB with both sessionId and roomId
-      const response = await fetch(API_URL, {
+      const response = await fetch(CREATE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1403,11 +1404,12 @@ const handleMouseLeave = () => {
     try {
       // Get host from current location or use default for API
       const host = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
-      const API_URL = `http://${host}:5000/api/sessions/validate`;
-      console.log('Validating session with backend at:', API_URL);
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const VALIDATE = `${API_URL}/sessions/validate`;
+      console.log('Validating session with backend at:', VALIDATE);
       
       // Validate session in MongoDB
-      const response = await fetch(API_URL, {
+      const response = await fetch(VALIDATE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
