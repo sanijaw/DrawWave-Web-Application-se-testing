@@ -107,7 +107,7 @@ jobs:
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             
             # Frontend URL for redirects
-            FRONTEND_URL=http://${{ secrets.VPS_HOST }}
+            FRONTEND_URL=https://app.drawwave.space/
             EOL
             
             # Create docker-compose.yml file
@@ -125,8 +125,8 @@ jobs:
                 ports:
                   - "81:81"
                 environment:
-                  - VITE_WEBSOCKET_URL=ws://${VPS_HOST}:8765
-                  - VITE_WEBCAM_WEBSOCKET_URL=ws://${VPS_HOST}:8080
+                  - VITE_WEBSOCKET_URL=wss://inference.drawwave.space
+                  - VITE_WEBCAM_WEBSOCKET_URL=wss://inference.drawwave.space
                   - VITE_API_URL=https://api.drawwave.space/api
             
               backend:
